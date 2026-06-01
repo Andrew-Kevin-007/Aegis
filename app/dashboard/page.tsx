@@ -5,9 +5,11 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/Button";
-import { Plus, LogOut, Check, TrendingDown, DollarSign, Scan, ArrowRight, Zap, AlertTriangle, Share2, Copy } from "lucide-react";
+import { Plus, LogOut, Check, TrendingDown, DollarSign, Scan, ArrowRight, Zap, AlertTriangle, Share2, Copy, History, List } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import type { DBPayment } from "@/lib/database.types";
+import PixelKat from "@/components/PixelKat";
+import FeatureTour from "@/components/FeatureTour";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -16,9 +18,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState("");
   const [totalFeesPrevented, setTotalFeesPrevented] = useState(0);
+  const [streakCount, setStreakCount] = useState(0);
+  const [longestStreak, setLongestStreak] = useState(0);
   const [isPro, setIsPro] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referredBy, setReferredBy] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
 
   useEffect(() => {
     async function load() {
@@ -29,12 +34,14 @@ export default function Dashboard() {
       // Fetch user profile for fees prevented and pro status
       const { data: profile } = await supabase
         .from("users")
-        .select("total_fees_prevented, is_pro, referral_code, referred_by")
+        .select("total_fees_prevented, streak_count, longest_streak, is_pro, referral_code, referred_by")
         .eq("id", user.id)
         .single();
         
       if (profile) {
         setTotalFeesPrevented(Number(profile.total_fees_prevented) || 0);
+        setStreakCount(profile.streak_count || 0);
+        setLongestStreak(profile.longest_streak || 0);
         setIsPro(profile.is_pro || false);
         setReferralCode(profile.referral_code);
         setReferredBy(profile.referred_by);
@@ -61,11 +68,10 @@ export default function Dashboard() {
         }
       }
 
-      // Fetch payments (active first)
+      // Fetch all payments
       const { data, error } = await supabase
         .from("payments")
         .select("*")
-        .neq("status", "paid")
         .order("due_date", { ascending: true });
 
       if (error) { toast.error("Failed to fetch payments."); }
@@ -93,20 +99,30 @@ export default function Dashboard() {
       toast.error("Failed to settle.");
       setPayments(prev);
     } else {
-      // Update fees prevented if there was a late fee
-      if (payment.late_fee && payment.late_fee > 0) {
-        const feeAmount = Number(payment.late_fee);
-        const newTotal = totalFeesPrevented + feeAmount;
-        setTotalFeesPrevented(newTotal);
-        
-        // Update in background
-        supabase
-          .from("users")
-          .update({ total_fees_prevented: newTotal })
-          .eq("id", payment.user_id)
-          .then(() => {});
+      // Increment Streak (always increments on a successful settle)
+      const newStreak = streakCount + 1;
+      const newLongest = Math.max(longestStreak, newStreak);
+      setStreakCount(newStreak);
+      setLongestStreak(newLongest);
 
-        // Milestone celebrations logic (frontend toast for now, can be modals later)
+      // Calculate new total fees prevented if there was a late fee
+      const feeAmount = payment.late_fee ? Number(payment.late_fee) : 0;
+      const newTotal = totalFeesPrevented + feeAmount;
+      if (feeAmount > 0) setTotalFeesPrevented(newTotal);
+      
+      // Update DB in background
+      supabase
+        .from("users")
+        .update({ 
+          total_fees_prevented: newTotal,
+          streak_count: newStreak,
+          longest_streak: newLongest
+        })
+        .eq("id", payment.user_id)
+        .then(() => {});
+
+      // Milestone celebrations logic
+      if (feeAmount > 0) {
         if (newTotal >= 10 && totalFeesPrevented < 10) {
           toast.success("Milestone: You've saved your first £10 in late fees!", { duration: 5000 });
         } else if (newTotal >= 50 && totalFeesPrevented < 50) {
@@ -119,15 +135,20 @@ export default function Dashboard() {
           });
         }
       } else {
-        toast.success("Payment settled. Credit file protected.");
+        toast.success(`Payment settled. Streak is now 🔥${newStreak}!`, {
+          description: "Credit file protected."
+        });
       }
     }
   };
 
-  const totalLiability = payments.reduce((s, p) => s + Number(p.amount_due), 0);
+  const activePayments = payments.filter((p) => p.status !== "paid");
+  const historyPayments = payments.filter((p) => p.status === "paid").sort((a, b) => new Date(b.paid_at || 0).getTime() - new Date(a.paid_at || 0).getTime());
+
+  const totalLiability = activePayments.reduce((s, p) => s + Number(p.amount_due), 0);
   
   // Sort by urgency: overdue first, then nearest due date
-  const sortedPayments = [...payments].sort((a, b) => {
+  const sortedPayments = [...activePayments].sort((a, b) => {
     if (a.status === 'overdue' && b.status !== 'overdue') return -1;
     if (a.status !== 'overdue' && b.status === 'overdue') return 1;
     return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
@@ -150,6 +171,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background text-text-primary">
       <Toaster theme="dark" closeButton />
+      <FeatureTour />
       
       <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0A0A0A]/50 backdrop-blur-md sticky top-0 z-50">
         <span className="font-bold tracking-tighter cursor-pointer" onClick={() => router.push("/")}>Aegis.</span>
@@ -203,7 +225,7 @@ export default function Dashboard() {
         ) : (
           <>
             {/* The One-Number Dashboard Hero */}
-            <div className="flex flex-col items-center text-center mb-16">
+            <div className="flex flex-col items-center text-center mb-10">
               <p className="font-mono text-[11px] text-text-muted uppercase tracking-widest mb-3">Total Exposure</p>
               <h1 className={`text-6xl md:text-8xl font-semibold tracking-tighter mb-4 ${exposureColor}`}>
                 £{totalLiability.toFixed(2)}
@@ -213,78 +235,129 @@ export default function Dashboard() {
               </div>
 
               {totalFeesPrevented > 0 && (
-                <div className="mt-8 flex items-center gap-1.5 text-text-secondary text-sm bg-[#111] px-4 py-2 rounded-lg border border-white/5">
+                <div className="mt-8 flex items-center gap-1.5 text-text-secondary text-sm bg-[#111] px-4 py-2 rounded-lg border border-white/5 cursor-pointer hover:bg-white/5 transition-colors" onClick={() => router.push("/community")}>
                   <DollarSign className="w-4 h-4 text-success" />
                   Total late fees prevented: <span className="font-medium text-white">£{totalFeesPrevented.toFixed(2)}</span>
+                  <ArrowRight className="w-3 h-3 ml-2 text-text-muted" />
                 </div>
               )}
             </div>
 
-            {/* Payments List (Urgent First) */}
-            <div className="space-y-6">
-              <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                <h3 className="font-medium">Active Liabilities</h3>
-                <span className="text-text-muted text-sm">{payments.length} pending</span>
-              </div>
-              
-              <div className="space-y-2">
-                {sortedPayments.map((payment, i) => {
-                  const daysLeft = Math.ceil((new Date(payment.due_date).getTime() - Date.now()) / 86400000);
-                  const ficoImpact = payment.late_fee ? Math.min(40, Math.round(Number(payment.late_fee) * 2.5)) : 15;
-                  
-                  return (
-                    <motion.div
-                      key={payment.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.04 }}
-                      className="group bg-[#0A0A0A] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between"
-                    >
-                      <div className="flex gap-4 items-center flex-1">
-                        <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-text-muted font-mono text-xs uppercase">
-                          {payment.provider.substring(0,2)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-white mb-0.5">{payment.item_name}</p>
-                          <div className="flex items-center gap-3 text-xs text-text-secondary">
-                            <span className="capitalize">{payment.provider}</span>
-                            <span className="w-1 h-1 rounded-full bg-white/20" />
-                            {payment.status === "overdue" ? (
-                              <span className="text-danger font-medium flex items-center gap-1">
-                                <AlertTriangle className="w-3 h-3" /> Overdue
-                              </span>
-                            ) : (
-                              <span>{daysLeft <= 0 ? "Due today" : `Due in ${daysLeft} days`}</span>
-                            )}
+            {/* Companion Section */}
+            <div className="mb-10">
+              <PixelKat streak={streakCount} hasOverdue={sortedPayments.some(p => p.status === 'overdue')} />
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-4 border-b border-white/5 mb-6">
+              <button 
+                onClick={() => setActiveTab("active")}
+                className={`pb-3 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "active" ? "text-white border-b-2 border-white" : "text-text-muted hover:text-white"}`}
+              >
+                <List className="w-4 h-4" /> Active ({activePayments.length})
+              </button>
+              <button 
+                onClick={() => setActiveTab("history")}
+                className={`pb-3 text-sm font-medium transition-colors flex items-center gap-2 ${activeTab === "history" ? "text-white border-b-2 border-white" : "text-text-muted hover:text-white"}`}
+              >
+                <History className="w-4 h-4" /> History
+              </button>
+            </div>
+
+            {activeTab === "active" && (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  {sortedPayments.length === 0 ? (
+                    <div className="text-center py-10 bg-white/5 rounded-xl border border-white/5 border-dashed">
+                      <p className="text-text-secondary text-sm">No active liabilities. You are completely debt free!</p>
+                    </div>
+                  ) : sortedPayments.map((payment, i) => {
+                    const daysLeft = Math.ceil((new Date(payment.due_date).getTime() - Date.now()) / 86400000);
+                    const ficoImpact = payment.late_fee ? Math.min(40, Math.round(Number(payment.late_fee) * 2.5)) : 15;
+                    
+                    return (
+                      <motion.div
+                        key={payment.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.04 }}
+                        className="group bg-[#0A0A0A] border border-white/5 hover:border-white/10 rounded-xl p-4 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between"
+                      >
+                        <div className="flex gap-4 items-center flex-1">
+                          <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-text-muted font-mono text-xs uppercase">
+                            {payment.provider.substring(0,2)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-white mb-0.5">{payment.item_name}</p>
+                            <div className="flex items-center gap-3 text-xs text-text-secondary">
+                              <span className="capitalize">{payment.provider}</span>
+                              <span className="w-1 h-1 rounded-full bg-white/20" />
+                              {payment.status === "overdue" ? (
+                                <span className="text-danger font-medium flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" /> Overdue
+                                </span>
+                              ) : (
+                                <span>{daysLeft <= 0 ? "Due today" : `Due in ${daysLeft} days`}</span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-auto w-full border-t sm:border-0 border-white/5 pt-3 sm:pt-0">
-                        {/* FICO Impact */}
-                        <div className="flex items-center gap-1 text-danger/80 font-mono text-[10px]">
-                          <TrendingDown className="w-3 h-3" />
-                          <span>-{ficoImpact} pts if missed</span>
-                        </div>
-                        
-                        <div className="text-right font-medium text-lg">
-                          £{Number(payment.amount_due).toFixed(2)}
-                        </div>
+                        <div className="flex items-center justify-between sm:justify-end gap-6 sm:w-auto w-full border-t sm:border-0 border-white/5 pt-3 sm:pt-0">
+                          <div className="flex items-center gap-1 text-danger/80 font-mono text-[10px]">
+                            <TrendingDown className="w-3 h-3" />
+                            <span>-{ficoImpact} pts if missed</span>
+                          </div>
+                          
+                          <div className="text-right font-medium text-lg">
+                            £{Number(payment.amount_due).toFixed(2)}
+                          </div>
 
-                        <Button 
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleSettle(payment)} 
-                          className="h-9 px-3"
-                        >
-                          Settle
-                        </Button>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+                          <Button 
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleSettle(payment)} 
+                            className="h-9 px-3"
+                          >
+                            Settle
+                          </Button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
+
+            {activeTab === "history" && (
+              <div className="space-y-2">
+                {historyPayments.length === 0 ? (
+                  <div className="text-center py-10 bg-white/5 rounded-xl border border-white/5 border-dashed">
+                    <p className="text-text-secondary text-sm">No payment history yet.</p>
+                  </div>
+                ) : historyPayments.map((payment, i) => (
+                  <motion.div
+                    key={payment.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="bg-[#0A0A0A] border border-white/5 rounded-xl p-4 flex flex-col sm:flex-row gap-4 sm:items-center justify-between opacity-70"
+                  >
+                    <div className="flex gap-4 items-center flex-1">
+                      <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center text-success">
+                        <Check className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-white line-through text-sm">{payment.item_name}</p>
+                        <p className="text-xs text-text-secondary capitalize">{payment.provider} • Settled on {new Date(payment.paid_at || "").toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="font-medium text-text-secondary line-through">
+                      £{Number(payment.amount_due).toFixed(2)}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
 
             {/* Referral Section */}
             {referralCode && (

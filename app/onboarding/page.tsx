@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { createClient } from "@/lib/supabase/client";
 import { Camera, ChevronLeft, Scan, ArrowRight, ShieldCheck, AlertTriangle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import type { Payment } from "@/lib/gemini";
@@ -69,6 +70,39 @@ export default function Onboarding() {
     }
   };
 
+  const handleDemo = async () => {
+    setStep(2);
+    setLoading(true);
+    
+    // Simulate OCR delay
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    
+    const demoData = [
+      { provider: "Klarna", item_name: "ASOS Order", amount_due: 45.00, currency: "GBP", due_date: new Date(Date.now() + 3 * 86400000).toISOString(), late_fee: null, status: "upcoming" },
+      { provider: "Afterpay", item_name: "Nike Sneakers", amount_due: 120.00, currency: "GBP", due_date: new Date(Date.now() - 2 * 86400000).toISOString(), late_fee: 15.00, status: "overdue" },
+    ];
+    setExtractedPayments(demoData as any);
+    
+    try {
+      // For the onboarding demo, we inject directly into Supabase so the dashboard works
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const dbInserts = demoData.map(p => ({
+          ...p,
+          user_id: user.id
+        }));
+        await supabase.from("payments").insert(dbInserts);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
+    setLoading(false);
+    setStep(3);
+  };
+
   const totalAmount = extractedPayments.reduce((sum, p) => sum + p.amount_due, 0);
   const overdueCount = extractedPayments.filter((p) => p.status === "overdue").length;
 
@@ -110,7 +144,7 @@ export default function Onboarding() {
                   </p>
                 </div>
                 
-                <div className="pb-8">
+                <div className="pb-8 space-y-4">
                   <label className="w-full relative">
                     <div className="w-full h-14 bg-white text-black font-medium rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-neutral-200 transition-colors">
                       <Camera className="w-5 h-5" />
@@ -118,6 +152,10 @@ export default function Onboarding() {
                     </div>
                     <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
                   </label>
+                  
+                  <Button variant="secondary" fullWidth size="lg" onClick={handleDemo}>
+                    Or Use Demo Screenshot
+                  </Button>
                 </div>
               </motion.div>
             )}
@@ -183,7 +221,10 @@ export default function Onboarding() {
                 </div>
 
                 <div className="pb-8">
-                  <Button fullWidth size="lg" onClick={() => router.push('/dashboard')} icon={<ArrowRight className="w-4 h-4"/>}>
+                  <Button fullWidth size="lg" onClick={async () => {
+                    // For demo, if there are payments, just push to dashboard
+                    router.push('/dashboard')
+                  }} icon={<ArrowRight className="w-4 h-4"/>}>
                     Initialize Dashboard
                   </Button>
                 </div>

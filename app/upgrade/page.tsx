@@ -8,7 +8,7 @@ import Card from "@/components/ui/Card";
 import { ShieldCheck, Check, Sparkles, ChevronLeft, Zap, Infinity as InfinityIcon } from "lucide-react";
 import { toast, Toaster } from "sonner";
 
-type Plan = "monthly" | "annual" | "lifetime";
+type Plan = "monthly" | "half-year" | "annual";
 
 export default function UpgradePage() {
   const router = useRouter();
@@ -158,27 +158,26 @@ export default function UpgradePage() {
             </Button>
           </Card>
 
-          {/* Lifetime */}
+          {/* Half-Year */}
           <Card variant="elevated" className="border-white/5 relative flex flex-col">
             <div className="mb-6 flex-1">
               <div className="flex justify-between items-start mb-4">
-                <span className="font-mono text-xs uppercase tracking-widest text-warning block">Lifetime</span>
-                <Zap className="w-4 h-4 text-warning" />
+                <span className="font-mono text-xs uppercase tracking-widest text-text-muted block">Half-Year</span>
               </div>
               <div className="flex items-baseline mb-2">
-                <span className="text-3xl font-bold font-numeric">£149</span>
-                <span className="text-text-muted text-xs ml-1">one-time</span>
+                <span className="text-3xl font-bold font-numeric">£49.99</span>
+                <span className="text-text-muted text-xs ml-1">/ 6 mo</span>
               </div>
-              <p className="text-text-secondary text-sm mb-6">Limited launch offer. First 200 users only.</p>
+              <p className="text-text-secondary text-sm mb-6">Save ~16%. Perfect for building habits.</p>
               
               <div className="space-y-3 mb-8">
                 <div className="flex gap-3 items-start">
-                  <Check className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-text-secondary">Everything in Pro</span>
                 </div>
                 <div className="flex gap-3 items-start">
-                  <InfinityIcon className="w-4 h-4 text-warning flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-text-secondary">Never pay again</span>
+                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-text-secondary">Save on monthly costs</span>
                 </div>
               </div>
             </div>
@@ -186,11 +185,10 @@ export default function UpgradePage() {
             <Button 
               fullWidth 
               variant="secondary"
-              className="hover:bg-warning hover:text-black border-warning/20 hover:border-warning transition-colors"
-              isLoading={loading === "lifetime"} 
-              onClick={() => handlePayment("lifetime")}
+              isLoading={loading === "half-year"} 
+              onClick={() => handlePayment("half-year")}
             >
-              Get Lifetime
+              Get Half-Year
             </Button>
           </Card>
 

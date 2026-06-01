@@ -68,6 +68,22 @@ export default function TryPage() {
     }
   };
 
+  const handleDemo = async () => {
+    setStep(2);
+    setLoading(true);
+    
+    // Simulate OCR delay
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    
+    setExtractedPayments([
+      { provider: "Klarna", item_name: "ASOS Order", amount_due: 45.00, currency: "GBP", due_date: new Date(Date.now() + 3 * 86400000).toISOString(), late_fee: null, status: "upcoming" },
+      { provider: "Afterpay", item_name: "Nike Sneakers", amount_due: 120.00, currency: "GBP", due_date: new Date(Date.now() - 2 * 86400000).toISOString(), late_fee: 15.00, status: "overdue" },
+    ]);
+    
+    setLoading(false);
+    setStep(3);
+  };
+
   const totalAmount = extractedPayments.reduce((sum, p) => sum + p.amount_due, 0);
   const overdueCount = extractedPayments.filter((p) => p.status === "overdue").length;
 
@@ -111,7 +127,7 @@ export default function TryPage() {
                   </p>
                 </div>
                 
-                <div className="pb-8">
+                <div className="pb-8 space-y-4">
                   <label className="w-full relative">
                     <div className="w-full h-14 bg-white text-black font-medium rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-neutral-200 transition-colors">
                       <Camera className="w-5 h-5" />
@@ -119,6 +135,10 @@ export default function TryPage() {
                     </div>
                     <input type="file" accept="image/*" className="hidden" onChange={handleFile} />
                   </label>
+                  
+                  <Button variant="secondary" fullWidth size="lg" onClick={handleDemo}>
+                    Or Use Demo Screenshot
+                  </Button>
                 </div>
               </motion.div>
             )}

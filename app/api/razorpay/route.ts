@@ -4,8 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 
 const PLANS = {
   monthly: { amount: 999, description: "Aegis Pro - Monthly" }, // £9.99
+  "half-year": { amount: 4999, description: "Aegis Pro - Half-Year" }, // £49.99
   annual: { amount: 7999, description: "Aegis Pro - Annual" },   // £79.99
-  lifetime: { amount: 14900, description: "Aegis Pro - Lifetime" }, // £149.00
 };
 
 export async function POST(request: Request) {

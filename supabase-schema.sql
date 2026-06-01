@@ -77,6 +77,47 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
+-- Trigger to call the function on new user signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Community Forums
+
+CREATE TABLE public.posts (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid REFERENCES public.users(id) NOT NULL,
+  content text NOT NULL,
+  upvotes int DEFAULT 0,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE public.comments (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  post_id uuid REFERENCES public.posts(id) ON DELETE CASCADE NOT NULL,
+  user_id uuid REFERENCES public.users(id) NOT NULL,
+  content text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+-- RLS for Community
+
+ALTER TABLE public.posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+
+-- Anyone authenticated can read posts
+CREATE POLICY "Anyone can view posts" ON public.posts
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Users can insert their own posts
+CREATE POLICY "Users can insert their own posts" ON public.posts
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Anyone authenticated can read comments
+CREATE POLICY "Anyone can view comments" ON public.comments
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Users can insert their own comments
+CREATE POLICY "Users can insert their own comments" ON public.comments
+  FOR INSERT WITH CHECK (auth.uid() = user_id);

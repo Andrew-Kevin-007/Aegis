@@ -45,6 +45,8 @@ export async function POST(request: Request) {
         
         if (plan === "monthly") {
           proExpiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
+        } else if (plan === "half-year") {
+          proExpiresAt = new Date(Date.now() + 182 * 86400000).toISOString();
         } else if (plan === "annual") {
           proExpiresAt = new Date(Date.now() + 365 * 86400000).toISOString();
         }

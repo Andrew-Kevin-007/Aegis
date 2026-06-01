@@ -18,7 +18,7 @@ export type Payment = z.infer<typeof PaymentSchema>;
 export const ExtractionResponseSchema = z.array(PaymentSchema);
 
 export async function extractPaymentsFromImage(base64Image: string, mimeType: string): Promise<Payment[]> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
   const prompt = `
 Analyze this BNPL app screenshot. Extract ALL payment entries. For each return JSON:
