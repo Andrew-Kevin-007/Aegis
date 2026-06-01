@@ -60,3 +60,84 @@ body {
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* ================================
+   Driver.js Popover — Aegis theme
+   ================================ */
+
+.aegis-driver-popover {
+  background: #0A0A0A !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 40px rgba(0,0,0,0.8) !important;
+  padding: 20px !important;
+  max-width: 320px !important;
+}
+
+.aegis-driver-popover .driver-popover-title {
+  color: #FFFFFF !important;
+  font-family: var(--font-geist-mono), monospace !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.15em !important;
+  text-transform: uppercase !important;
+  margin-bottom: 10px !important;
+}
+
+.aegis-driver-popover .driver-popover-description {
+  color: #888888 !important;
+  font-family: var(--font-geist-mono), monospace !important;
+  font-size: 11px !important;
+  line-height: 1.7 !important;
+}
+
+.aegis-driver-popover .driver-popover-footer {
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+  margin-top: 16px !important;
+  padding-top: 14px !important;
+}
+
+.aegis-driver-popover .driver-popover-progress-text {
+  color: #555555 !important;
+  font-family: var(--font-geist-mono), monospace !important;
+  font-size: 10px !important;
+  letter-spacing: 0.1em !important;
+}
+
+.aegis-driver-popover button.driver-popover-next-btn {
+  background: #FFFFFF !important;
+  color: #000000 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-family: var(--font-geist-mono), monospace !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  padding: 8px 16px !important;
+  cursor: pointer !important;
+}
+
+.aegis-driver-popover button.driver-popover-prev-btn {
+  background: transparent !important;
+  color: #555555 !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 6px !important;
+  font-family: var(--font-geist-mono), monospace !important;
+  font-size: 10px !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  padding: 8px 16px !important;
+  cursor: pointer !important;
+}
+
+.aegis-driver-popover button.driver-popover-close-btn {
+  color: #555555 !important;
+  top: 16px !important;
+  right: 16px !important;
+}
+
+/* Driver overlay colour */
+.driver-overlay {
+  background: rgba(0,0,0,0.78) !important;
+}
