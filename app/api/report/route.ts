@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { detectRegion, getRegionRegulation } from "@/lib/region";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -32,7 +33,10 @@ export async function POST(request: Request) {
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
-    const prompt = `You are a UK credit specialist at Aegis, a financial protection startup.
+    const { code, currency } = detectRegion();
+    const regulationContext = getRegionRegulation(code);
+
+    const prompt = `You are a credit specialist at Aegis, a financial protection startup.
 A user has the following active BNPL payments:
 ${JSON.stringify(payments, null, 2)}
 
@@ -44,9 +48,9 @@ RECOMMENDED ACTION:
 - (specific payment to prioritise and why)
 - (second action if applicable)
 
-CREDIT IMPACT: (1 sentence — what the FCA regulation change on 15 July 2026 means for their specific situation)
+CREDIT IMPACT: (1 sentence — what the upcoming ${regulationContext} means for their specific situation)
 
-Rules: Direct, expert tone. No emojis. No jargon. Max 130 words total. Use GBP (£) for amounts.`;
+Rules: Direct, expert tone. No emojis. No jargon. Max 130 words total. Use ${currency} for amounts.`;
 
     const result = await model.generateContent(prompt);
     const report = result.response.text().trim();

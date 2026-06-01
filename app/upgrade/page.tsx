@@ -7,12 +7,30 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import { ShieldCheck, Check, Sparkles, ChevronLeft, Zap, Infinity as InfinityIcon } from "lucide-react";
 import { toast, Toaster } from "sonner";
+import { detectRegion } from "@/lib/region";
+import { formatCurrency } from "@/lib/currency";
 
 type Plan = "monthly" | "half-year" | "annual";
 
 export default function UpgradePage() {
   const router = useRouter();
   const [loading, setLoading] = useState<Plan | null>(null);
+  
+  const { code, currency } = detectRegion();
+
+  const getPrice = (plan: Plan) => {
+    switch (code) {
+      case "IN": return plan === "monthly" ? 299 : plan === "half-year" ? 1499 : 2499;
+      case "US": return plan === "monthly" ? 11.99 : plan === "half-year" ? 59.99 : 99.99;
+      case "DE":
+      case "FR":
+      case "ES":
+      case "EU": return plan === "monthly" ? 10.99 : plan === "half-year" ? 54.99 : 89.99;
+      case "AU": return plan === "monthly" ? 16.99 : plan === "half-year" ? 84.99 : 139.99;
+      case "SA": return plan === "monthly" ? 39.99 : plan === "half-year" ? 199.99 : 329.99;
+      default: return plan === "monthly" ? 9.99 : plan === "half-year" ? 49.99 : 79.99;
+    }
+  };
 
   const handlePayment = async (plan: Plan) => {
     setLoading(plan);
@@ -20,7 +38,7 @@ export default function UpgradePage() {
       const res = await fetch("/api/razorpay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, currency }),
       });
       const data = await res.json();
 
@@ -89,7 +107,7 @@ export default function UpgradePage() {
             <div className="mb-6 flex-1">
               <span className="font-mono text-xs uppercase tracking-widest text-text-muted block mb-4">Monthly</span>
               <div className="flex items-baseline mb-2">
-                <span className="text-3xl font-bold font-numeric">£9.99</span>
+                <span className="text-3xl font-bold font-numeric">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("monthly"))}</span>
                 <span className="text-text-muted text-xs ml-1">/ month</span>
               </div>
               <p className="text-text-secondary text-sm mb-6">Flexible protection, cancel anytime.</p>
@@ -127,7 +145,7 @@ export default function UpgradePage() {
             <div className="mb-6 flex-1">
               <span className="font-mono text-xs uppercase tracking-widest text-white block mb-4">Annual</span>
               <div className="flex items-baseline mb-2">
-                <span className="text-4xl font-bold font-numeric">£79.99</span>
+                <span className="text-4xl font-bold font-numeric">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("annual"))}</span>
                 <span className="text-text-muted text-xs ml-1">/ year</span>
               </div>
               <p className="text-white/80 text-sm mb-6">Save 33%. Equivalent to £6.67/mo.</p>
@@ -165,7 +183,7 @@ export default function UpgradePage() {
                 <span className="font-mono text-xs uppercase tracking-widest text-text-muted block">Half-Year</span>
               </div>
               <div className="flex items-baseline mb-2">
-                <span className="text-3xl font-bold font-numeric">£49.99</span>
+                <span className="text-3xl font-bold font-numeric">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("half-year"))}</span>
                 <span className="text-text-muted text-xs ml-1">/ 6 mo</span>
               </div>
               <p className="text-text-secondary text-sm mb-6">Save ~16%. Perfect for building habits.</p>

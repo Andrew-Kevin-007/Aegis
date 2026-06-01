@@ -9,10 +9,12 @@ import PixelKat from "@/components/PixelKat";
 import HealthScore from "@/components/HealthScore";
 import AIBriefing from "@/components/AIBriefing";
 import ContextualTour from "@/components/ContextualTour";
+import { formatCurrency } from "@/lib/currency";
+import { detectRegion } from "@/lib/region";
 import {
   Plus, LogOut, Check, TrendingDown, DollarSign, Scan,
   ArrowRight, Zap, AlertTriangle, Share2, Copy, History,
-  List, Users, Shield
+  List, Users, Shield, Sparkles
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import type { DBPayment } from "@/lib/database.types";
@@ -146,6 +148,8 @@ export default function Dashboard() {
       toast.success(`Settled. Streak: 🔥${newStreak}`, { description: "Credit file protected." });
   };
 
+  const { currency } = detectRegion();
+
   const handleShare = async () => {
     setShareLoading(true);
     const url = `${window.location.origin}/api/shield/${userId}`;
@@ -153,7 +157,7 @@ export default function Dashboard() {
       if (navigator.share) {
         await navigator.share({
           title: "My Aegis Debt Shield Card",
-          text: `I've protected £${totalFeesPrevented.toFixed(2)} in late fees with Aegis. Check yours.`,
+          text: `I've protected ${formatCurrency(totalFeesPrevented, currency)} in late fees with Aegis. Check yours.`,
           url: `https://getaegis.app?ref=${referralCode}`,
         });
       } else {
@@ -184,6 +188,15 @@ export default function Dashboard() {
   else if (totalLiability > 100) { exposureColor = "text-warning"; exposureLabel = "Moderate Exposure"; }
   else if (totalLiability > 0) { exposureColor = "text-success"; exposureLabel = "Low Exposure"; }
 
+  // Projected clear date
+  let projectedClearDate = null;
+  if (activePayments.length > 0) {
+    const latestDate = Math.max(...activePayments.map(p => new Date(p.due_date).getTime()));
+    projectedClearDate = new Date(latestDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  const isDebtFree = activePayments.length === 0 && historyPayments.length > 0;
+
   return (
     <div className="min-h-screen bg-background text-text-primary">
       <Toaster theme="dark" closeButton />
@@ -194,38 +207,42 @@ export default function Dashboard() {
         <span className="font-bold tracking-tighter cursor-pointer font-mono" onClick={() => router.push("/")}>
           AEGIS.
         </span>
-        <div className="flex gap-2 items-center">
+        <div className="flex items-center gap-2">
           {!isPro ? (
             <Button variant="ghost" size="sm" onClick={() => router.push("/upgrade")}
               className="font-mono text-xs uppercase tracking-widest">
               Pro
             </Button>
           ) : (
-            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-white/80 uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-white/80 uppercase tracking-widest">
               <Zap className="w-3 h-3 text-warning" /> PRO
             </div>
           )}
-          <Button variant="ghost" size="sm" onClick={() => router.push("/community")}
-            icon={<Users className="w-3.5 h-3.5" />}>
-            <span className="hidden sm:inline font-mono text-xs uppercase tracking-widest">Community</span>
-          </Button>
-          <Button
-            id="dashboard-scan-button"
-            variant="secondary"
-            size="sm"
-            onClick={() => router.push("/onboarding")}
-            icon={<Plus className="w-3 h-3" />}
-          >
-            <span className="font-mono text-xs uppercase tracking-widest">Scan</span>
-          </Button>
-          <Button variant="ghost" size="sm" onClick={handleSignOut} icon={<LogOut className="w-3.5 h-3.5" />}>
-            <span className="hidden sm:inline font-mono text-xs uppercase tracking-widest">Out</span>
-          </Button>
-          <div
-            className="w-8 h-8 rounded-full border border-white/10 bg-[#111] flex items-center justify-center font-mono text-[10px] uppercase"
-            title={userEmail}
-          >
-            {userEmail ? userEmail.substring(0, 2) : "US"}
+          
+          <div className="hidden md:flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={() => router.push("/community")}
+              icon={<Users className="w-3.5 h-3.5" />}>
+              <span className="font-mono text-xs uppercase tracking-widest">Community</span>
+            </Button>
+            <Button
+              id="dashboard-scan-button"
+              variant="secondary"
+              size="sm"
+              onClick={() => router.push("/onboarding")}
+              icon={<Plus className="w-3 h-3" />}
+            >
+              <span className="font-mono text-xs uppercase tracking-widest">Scan</span>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleSignOut} icon={<LogOut className="w-3.5 h-3.5" />}>
+              <span className="font-mono text-xs uppercase tracking-widest">Out</span>
+            </Button>
+            <div
+              className="w-8 h-8 rounded-full border border-white/10 bg-[#111] flex items-center justify-center font-mono text-[10px] uppercase cursor-pointer"
+              title={userEmail}
+              onClick={() => router.push("/profile")}
+            >
+              {userEmail ? userEmail.substring(0, 2) : "US"}
+            </div>
           </div>
         </div>
       </header>
@@ -262,12 +279,28 @@ export default function Dashboard() {
                 Total BNPL Exposure
               </p>
               <h1 className={`text-7xl md:text-8xl font-bold tracking-tighter mb-4 ${exposureColor}`}>
-                £{totalLiability.toFixed(2)}
+                {formatCurrency(totalLiability, currency)}
               </h1>
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-sm font-mono uppercase tracking-widest">
                 <span className={`w-1.5 h-1.5 rounded-full ${hasOverdue ? "bg-danger animate-pulse" : totalLiability > 0 ? "bg-warning" : "bg-success"}`} />
                 {exposureLabel}
               </div>
+
+              {projectedClearDate && !isDebtFree && (
+                <p className="font-mono text-xs text-text-muted mt-5">
+                  At current pace, all liabilities cleared by: <strong className="text-white">{projectedClearDate}</strong>
+                </p>
+              )}
+
+              {isDebtFree && (
+                <motion.div 
+                  initial={{ scale: 0.9, opacity: 0 }} 
+                  animate={{ scale: 1, opacity: 1 }} 
+                  className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-success/10 border border-success/30 text-success font-mono uppercase tracking-widest text-xs font-bold"
+                >
+                  <Sparkles className="w-4 h-4" /> DEBT FREE CELEBRATION
+                </motion.div>
+              )}
 
               {totalFeesPrevented > 0 && (
                 <button
@@ -275,7 +308,7 @@ export default function Dashboard() {
                   className="mt-6 flex items-center gap-2 mx-auto text-sm text-text-secondary hover:text-white transition-colors font-mono"
                 >
                   <DollarSign className="w-4 h-4 text-success" />
-                  £{totalFeesPrevented.toFixed(2)} in late fees prevented
+                  {formatCurrency(totalFeesPrevented, currency)} in late fees prevented
                   <ArrowRight className="w-3 h-3" />
                 </button>
               )}
@@ -369,7 +402,7 @@ export default function Dashboard() {
                             <span>-{ficoImpact} pts if missed</span>
                           </div>
                           <div className="font-bold text-base font-numeric">
-                            £{Number(payment.amount_due).toFixed(2)}
+                            {formatCurrency(Number(payment.amount_due), payment.currency || currency)}
                           </div>
                           <Button
                             size="sm"
@@ -411,7 +444,7 @@ export default function Dashboard() {
                         </p>
                       </div>
                       <div className="font-mono text-sm text-text-muted line-through">
-                        £{Number(payment.amount_due).toFixed(2)}
+                        {formatCurrency(Number(payment.amount_due), payment.currency || currency)}
                       </div>
                     </motion.div>
                   ))}

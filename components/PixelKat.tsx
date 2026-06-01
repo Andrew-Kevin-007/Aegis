@@ -1,74 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { detectRegion } from "@/lib/region";
 
-// 16×16 pixel art frames — each entry is [x, y, colorKey]
-// Colors
+// Colors for accents
 const C = {
   fur: "#E8B88A",
-  dark: "#1A0A00",
   pink: "#FF9CB4",
-  eye: "#1A0A00",
-  white: "#FFFFFF",
   green: "#00FF87",
   gold: "#FFD700",
-  empty: "transparent",
+  danger: "#FF3B30",
 };
 
-type PixelFrame = Array<[number, number, string]>;
-
-const IDLE_1: PixelFrame = [
-  [5,0,C.dark],[6,0,C.dark],[7,0,C.dark],[8,0,C.dark],[9,0,C.dark],[10,0,C.dark],
-  [4,1,C.dark],[5,1,C.fur],[6,1,C.fur],[7,1,C.fur],[8,1,C.fur],[9,1,C.fur],[10,1,C.fur],[11,1,C.dark],
-  [3,2,C.dark],[4,2,C.fur],[5,2,C.fur],[6,2,C.fur],[7,2,C.fur],[8,2,C.fur],[9,2,C.fur],[10,2,C.fur],[11,2,C.fur],[12,2,C.dark],
-  [3,3,C.dark],[4,3,C.fur],[5,3,C.eye],[6,3,C.fur],[7,3,C.fur],[8,3,C.fur],[9,3,C.eye],[10,3,C.fur],[11,3,C.fur],[12,3,C.dark],
-  [3,4,C.dark],[4,4,C.fur],[5,4,C.fur],[6,4,C.fur],[7,4,C.pink],[8,4,C.fur],[9,4,C.fur],[10,4,C.fur],[11,4,C.fur],[12,4,C.dark],
-  [3,5,C.dark],[4,5,C.fur],[5,5,C.fur],[6,5,C.fur],[7,5,C.fur],[8,5,C.fur],[9,5,C.fur],[10,5,C.fur],[11,5,C.fur],[12,5,C.dark],
-  [4,6,C.dark],[5,6,C.fur],[6,6,C.fur],[7,6,C.fur],[8,6,C.fur],[9,6,C.fur],[10,6,C.fur],[11,6,C.dark],
-  [4,7,C.dark],[5,7,C.fur],[6,7,C.fur],[7,7,C.fur],[8,7,C.fur],[9,7,C.fur],[10,7,C.fur],[11,7,C.dark],
-  [4,8,C.dark],[5,8,C.fur],[6,8,C.fur],[7,8,C.fur],[8,8,C.fur],[9,8,C.fur],[10,8,C.fur],[11,8,C.dark],
-  [3,9,C.dark],[4,9,C.fur],[5,9,C.fur],[10,9,C.fur],[11,9,C.fur],[12,9,C.dark],
-  [3,10,C.dark],[4,10,C.fur],[5,10,C.fur],[10,10,C.fur],[11,10,C.fur],[12,10,C.dark],
-  [3,11,C.dark],[4,11,C.fur],[5,11,C.dark],[10,11,C.dark],[11,11,C.fur],[12,11,C.dark],
-  [14,8,C.fur],[15,8,C.dark],[14,9,C.dark],[13,10,C.dark],[14,10,C.fur],[15,10,C.dark],
-];
-
-const IDLE_2: PixelFrame = [
-  ...IDLE_1.filter(p => !(p[0] === 14 && p[1] === 8)),
-  [14,7,C.fur],[15,7,C.dark],[14,8,C.dark],
-];
-
-const STRESSED_1: PixelFrame = [
-  [5,0,C.dark],[6,0,C.dark],[7,0,C.dark],[8,0,C.dark],[9,0,C.dark],[10,0,C.dark],
-  [4,1,C.dark],[5,1,C.fur],[6,1,C.fur],[7,1,C.fur],[8,1,C.fur],[9,1,C.fur],[10,1,C.fur],[11,1,C.dark],
-  [3,2,C.dark],[4,2,C.fur],[5,2,C.fur],[6,2,C.fur],[7,2,C.fur],[8,2,C.fur],[9,2,C.fur],[10,2,C.fur],[11,2,C.fur],[12,2,C.dark],
-  [3,3,C.dark],[4,3,C.fur],[5,3,C.dark],[6,3,C.dark],[7,3,C.fur],[8,3,C.fur],[9,3,C.dark],[10,3,C.dark],[11,3,C.fur],[12,3,C.dark],
-  [3,4,C.dark],[4,4,C.fur],[5,4,C.fur],[6,4,C.fur],[7,4,C.pink],[8,4,C.fur],[9,4,C.fur],[10,4,C.fur],[11,4,C.fur],[12,4,C.dark],
-  [3,5,C.dark],[4,5,C.fur],[5,5,C.dark],[6,5,C.fur],[7,5,C.fur],[8,5,C.fur],[9,5,C.fur],[10,5,C.dark],[11,5,C.fur],[12,5,C.dark],
-  [4,6,C.dark],[5,6,C.fur],[6,6,C.fur],[7,6,C.fur],[8,6,C.fur],[9,6,C.fur],[10,6,C.fur],[11,6,C.dark],
-  [4,7,C.dark],[5,7,C.fur],[6,7,C.fur],[7,7,C.fur],[8,7,C.fur],[9,7,C.fur],[10,7,C.fur],[11,7,C.dark],
-  [4,8,C.dark],[5,8,C.fur],[6,8,C.fur],[7,8,C.fur],[8,8,C.fur],[9,8,C.fur],[10,8,C.fur],[11,8,C.dark],
-  [3,9,C.dark],[4,9,C.fur],[5,9,C.fur],[10,9,C.fur],[11,9,C.fur],[12,9,C.dark],
-  [3,10,C.dark],[4,10,C.fur],[5,10,C.dark],[10,10,C.dark],[11,10,C.fur],[12,10,C.dark],
-];
-
-const HAPPY_1: PixelFrame = [
-  ...IDLE_1,
-  [7,11,C.gold],[8,11,C.gold],[9,11,C.gold],
-  [6,12,C.gold],[7,12,C.gold],[8,12,C.gold],[9,12,C.gold],[10,12,C.gold],
-];
-const HAPPY_2: PixelFrame = [
-  ...IDLE_2,
-  [7,10,C.gold],[8,10,C.gold],[9,10,C.gold],
-  [6,11,C.gold],[7,11,C.gold],[8,11,C.gold],[9,11,C.gold],[10,11,C.gold],
-];
-
-const LEVEL_FRAMES: Record<number, { frames: PixelFrame[]; label: string; accent: string }> = {
-  1: { frames: [IDLE_1, IDLE_2], label: "Kitten", accent: C.fur },
-  2: { frames: [IDLE_1, IDLE_2, IDLE_1, IDLE_2], label: "Cat", accent: C.pink },
-  3: { frames: [IDLE_1, IDLE_2], label: "Warrior Kat", accent: C.green },
-  4: { frames: [IDLE_1, IDLE_2], label: "Aegis Kat", accent: C.green },
-  5: { frames: [HAPPY_1, HAPPY_2, IDLE_1, HAPPY_1], label: "Legend Kat", accent: C.gold },
+const LEVEL_FRAMES: Record<number, { label: string; accent: string }> = {
+  1: { label: "Kitten", accent: C.fur },
+  2: { label: "Cat", accent: C.pink },
+  3: { label: "Warrior Kat", accent: C.green },
+  4: { label: "Aegis Kat", accent: C.green },
+  5: { label: "Legend Kat", accent: C.gold },
 };
 
 function getLevel(streak: number) {
@@ -79,16 +28,15 @@ function getLevel(streak: number) {
   return 1;
 }
 
-function getMood(hasOverdue: boolean, streak: number): { frames: PixelFrame[]; speech: string; fps: number } {
-  if (hasOverdue) return {
-    frames: [STRESSED_1, IDLE_1, STRESSED_1],
-    speech: "MEOW! Overdue payments detected. My stress levels are critical.",
-    fps: 5,
-  };
-  const lvl = getLevel(streak);
-  if (lvl >= 4) return { frames: [HAPPY_1, HAPPY_2, HAPPY_1, IDLE_1], speech: `Legend status. ${streak} payments settled. Undefeated.`, fps: 10 };
-  if (lvl === 3) return { frames: [IDLE_1, IDLE_2, HAPPY_1, IDLE_2], speech: `Warrior mode. ${streak} streak. Keep going.`, fps: 8 };
-  return { frames: [IDLE_1, IDLE_2], speech: streak > 0 ? `${streak} payments down. Stay on track.` : "Awaiting your first settle.", fps: 8 };
+function getSpeechContext(code: string) {
+  switch (code) {
+    case "IN": return "CIBIL doesn't forgive.";
+    case "DE": return "SCHUFA is watching.";
+    case "UK": return "The FCA is taking notes.";
+    case "US": return "FICO remembers everything.";
+    case "AU": return "Credit reporting is active.";
+    default: return "Credit bureaus are watching.";
+  }
 }
 
 interface PixelKatProps {
@@ -97,30 +45,24 @@ interface PixelKatProps {
 }
 
 export default function PixelKat({ streak, hasOverdue }: PixelKatProps) {
-  const [frameIdx, setFrameIdx] = useState(0);
   const level = getLevel(streak);
-  const mood = getMood(hasOverdue, streak);
   const levelData = LEVEL_FRAMES[level];
+  const { code } = detectRegion();
+  const context = getSpeechContext(code);
 
-  useEffect(() => {
-    setFrameIdx(0);
-    const interval = setInterval(() => {
-      setFrameIdx(i => (i + 1) % mood.frames.length);
-    }, 1000 / mood.fps);
-    return () => clearInterval(interval);
-  }, [hasOverdue, streak, mood.fps, mood.frames.length]);
-
-  const frame = mood.frames[frameIdx];
-  const PIXEL_SIZE = 7;
-  const GRID = 16;
-
-  // Build pixel map from frame data
-  const grid: Record<string, string> = {};
-  frame.forEach(([x, y, color]) => { grid[`${x},${y}`] = color; });
-
-  const shakeStyle = hasOverdue ? {
-    animation: "shake 0.3s ease-in-out infinite alternate",
-  } : {};
+  let moodClass = "sprite-idle";
+  let speech = streak > 0 ? `${streak} payments down. Stay on track.` : "Awaiting your first settle.";
+  
+  if (hasOverdue) {
+    moodClass = "sprite-stressed";
+    speech = `MEOW! Overdue payments detected. ${context}`;
+  } else if (level >= 4) {
+    moodClass = "sprite-happy";
+    speech = `Legend status. ${streak} payments settled. Undefeated.`;
+  } else if (level === 3) {
+    moodClass = "sprite-happy";
+    speech = `Warrior mode. ${streak} streak. Keep going.`;
+  }
 
   return (
     <div
@@ -128,38 +70,53 @@ export default function PixelKat({ streak, hasOverdue }: PixelKatProps) {
       className="rounded-xl border border-white/5 p-5 bg-[#050505] flex items-center gap-6"
     >
       <style>{`
-        @keyframes shake {
-          0% { transform: translateX(-2px); }
-          100% { transform: translateX(2px); }
+        .pixel-kat-container {
+          width: 64px;
+          height: 64px;
+          overflow: hidden;
+          flex-shrink: 0;
+          background-color: #000;
+          border-radius: 8px;
+          border: 1px solid rgba(255,255,255,0.1);
         }
-        .pixel-kat { image-rendering: pixelated; }
+        
+        .pixel-sprite {
+          width: 256px; /* 4 frames * 64px */
+          height: 256px; /* 4 rows * 64px */
+          background-image: url('/kat-sprite.png');
+          background-size: 256px 256px;
+          image-rendering: pixelated;
+        }
+
+        .sprite-idle {
+          animation: play-sprite 0.8s steps(4) infinite;
+          background-position-y: 0px;
+        }
+        
+        .sprite-happy {
+          animation: play-sprite 0.6s steps(4) infinite;
+          background-position-y: -64px;
+        }
+        
+        .sprite-stressed {
+          animation: play-sprite 0.4s steps(4) infinite;
+          background-position-y: -128px;
+        }
+        
+        .sprite-levelup {
+          animation: play-sprite 0.7s steps(4) infinite;
+          background-position-y: -192px;
+        }
+
+        @keyframes play-sprite {
+          from { background-position-x: 0px; }
+          to { background-position-x: -256px; }
+        }
       `}</style>
 
-      {/* Pixel canvas */}
-      <div
-        className="pixel-kat flex-shrink-0 relative"
-        style={{ width: GRID * PIXEL_SIZE, height: GRID * PIXEL_SIZE, ...shakeStyle }}
-      >
-        <div
-          className="pixel-kat absolute inset-0"
-          style={{
-            display: "grid",
-            gridTemplateColumns: `repeat(${GRID}, ${PIXEL_SIZE}px)`,
-            gridTemplateRows: `repeat(${GRID}, ${PIXEL_SIZE}px)`,
-          }}
-        >
-          {Array.from({ length: GRID * GRID }).map((_, i) => {
-            const x = i % GRID;
-            const y = Math.floor(i / GRID);
-            const color = grid[`${x},${y}`] || "transparent";
-            return (
-              <div
-                key={i}
-                style={{ backgroundColor: color, width: PIXEL_SIZE, height: PIXEL_SIZE }}
-              />
-            );
-          })}
-        </div>
+      {/* Pixel sprite canvas */}
+      <div className="pixel-kat-container shadow-[0_0_15px_rgba(0,255,135,0.1)]">
+        <div className={`pixel-sprite ${moodClass}`} />
       </div>
 
       {/* Info panel */}
@@ -177,12 +134,13 @@ export default function PixelKat({ streak, hasOverdue }: PixelKatProps) {
         </div>
 
         {/* Speech bubble */}
-        <div className="bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 mt-2 mb-3">
+        <div className="bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 mt-2 mb-3 relative">
+          <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-4 border-y-transparent border-r-4 border-r-white/10" />
           <p
             className="font-mono text-xs leading-relaxed"
-            style={{ color: hasOverdue ? "#FF3B30" : levelData.accent }}
+            style={{ color: hasOverdue ? C.danger : levelData.accent }}
           >
-            &gt; {mood.speech}
+            &gt; {speech}
           </p>
         </div>
 
