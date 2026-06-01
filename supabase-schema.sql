@@ -14,6 +14,8 @@ CREATE TABLE public.users (
   total_fees_prevented decimal DEFAULT 0,
   referral_code text UNIQUE,
   referred_by uuid REFERENCES public.users(id),
+  ai_report text,
+  ai_report_at timestamptz,
   created_at timestamptz DEFAULT now()
 );
 

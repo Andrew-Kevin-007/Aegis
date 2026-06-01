@@ -8,6 +8,10 @@ export interface DBUser {
   streak_count: number;
   longest_streak: number;
   total_fees_prevented: number;
+  referral_code: string | null;
+  referred_by: string | null;
+  ai_report: string | null;
+  ai_report_at: string | null;
   created_at: string;
 }
 
