@@ -175,7 +175,7 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
   return (
     <div
       id="dashboard-kat-companion"
-      className="rounded-xl border border-white/5 p-5 bg-[#050505] flex items-center gap-6 relative"
+      className="rounded-xl border border-border p-5 bg-background flex items-center gap-6 relative"
     >
       <style>{`
         .pixel-kat-container {
@@ -263,7 +263,7 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span
-            className="font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded border text-black font-bold"
+            className="font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded border text-primary-inverse font-bold"
             style={{ backgroundColor: tier === "elite" ? C.gold : levelData.accent, borderColor: tier === "elite" ? C.gold : levelData.accent }}
           >
             {tier === "elite" ? "ELITE" : `LVL ${level}`}
@@ -274,7 +274,7 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
         </div>
 
         {/* Speech bubble */}
-        <div className="bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 mt-2 mb-3 relative min-h-[42px] flex items-center">
+        <div className="bg-surface border border-border rounded-lg px-3 py-2 mt-2 mb-3 relative min-h-[42px] flex items-center">
           <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-4 border-y-transparent border-r-4 border-r-white/10" />
           <p
             className="font-mono text-[11px] leading-relaxed"
@@ -290,12 +290,12 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5">
             <span className="text-sm">🔥</span>
-            <span className="font-mono text-xs text-white font-bold">{streak}</span>
+            <span className="font-mono text-xs text-text-primary font-bold">{streak}</span>
             <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">streak</span>
           </div>
           {level < 5 && tier !== "free" && (
             <div className="flex-1">
-              <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-1 bg-surface-hover rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-700"
                   style={{

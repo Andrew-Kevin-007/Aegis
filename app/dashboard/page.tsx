@@ -5,11 +5,12 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/Button";
-import PixelKat from "@/components/PixelKat";
+import GlobalKat from "@/components/GlobalKat";
 import HealthScore from "@/components/HealthScore";
 import AIBriefing from "@/components/AIBriefing";
 import ContextualTour from "@/components/ContextualTour";
 import FlexCard from "@/components/FlexCard";
+import ManualEntryModal from "@/components/ManualEntryModal";
 import { formatCurrency } from "@/lib/currency";
 import { detectRegion } from "@/lib/region";
 import { fetchUserPayments } from "@/app/actions";
@@ -59,6 +60,8 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
   const [showFlexCard, setShowFlexCard] = useState(false);
   const [showInvestPrompt, setShowInvestPrompt] = useState<number | null>(null);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [shareLoading, setShareLoading] = useState(false);
 
   useEffect(() => {
@@ -70,7 +73,7 @@ export default function Dashboard() {
 
       const { data: profile } = await supabase
         .from("users")
-        .select("total_fees_prevented, streak_count, longest_streak, tier, referral_code, referred_by, scan_date")
+        .select("total_fees_prevented, streak_count, longest_streak, tier, referral_code, referred_by, scan_date, wallet_balance")
         .eq("id", user.id)
         .single();
 
@@ -80,6 +83,7 @@ export default function Dashboard() {
         setLongestStreak(profile.longest_streak || 0);
         setTier(profile.tier || "free");
         setReferralCode(profile.referral_code);
+        setWalletBalance(Number(profile.wallet_balance) || 0);
 
         // Referral attribution
         const storedRef = localStorage.getItem("aegis_ref");
@@ -174,7 +178,7 @@ export default function Dashboard() {
   const healthScore = computeHealthScore(payments, streakCount, false);
   const hasOverdue = sortedPayments.some(p => p.status === "overdue");
 
-  let exposureColor = "text-white";
+  let exposureColor = "text-text-primary";
   let exposureLabel = "All Clear";
   if (totalLiability > 500) { exposureColor = "text-danger"; exposureLabel = "High Exposure"; }
   else if (totalLiability > 100) { exposureColor = "text-warning"; exposureLabel = "Moderate Exposure"; }
@@ -208,11 +212,11 @@ export default function Dashboard() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-sm bg-[#050505] border border-white/10 rounded-2xl p-6 relative overflow-hidden"
+            className="w-full max-w-sm bg-background border border-border rounded-2xl p-6 relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-success/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
             <Sparkles className="w-8 h-8 text-success mb-4" />
-            <h2 className="text-xl font-medium tracking-tight text-white mb-2">Auto-Wealth Engine</h2>
+            <h2 className="text-xl font-medium tracking-tight text-text-primary mb-2">Auto-Wealth Engine</h2>
             <p className="text-sm text-text-muted mb-6">
               You just prevented a {formatCurrency(showInvestPrompt, currency)} late fee. Most apps stop here. 
               Do you want to auto-invest this spread into Aegis Wealth (S&P 500) and turn debt prevention into compound wealth?
@@ -229,8 +233,18 @@ export default function Dashboard() {
         </div>
       )}
 
+      <ManualEntryModal 
+        isOpen={showManualEntry} 
+        onClose={() => setShowManualEntry(false)} 
+        userId={userId} 
+        onAdded={async () => {
+          const decryptedData = await fetchUserPayments();
+          setPayments(decryptedData as DBPayment[]);
+        }} 
+      />
+
       {/* Header */}
-      <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0A0A0A]/60 backdrop-blur-md sticky top-0 z-50">
+      <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-surface/60 backdrop-blur-md sticky top-0 z-50">
         <span className="font-bold tracking-tighter cursor-pointer font-mono" onClick={() => router.push("/")}>
           AEGIS.
         </span>
@@ -241,11 +255,11 @@ export default function Dashboard() {
               Upgrade
             </Button>
           ) : tier === "elite" ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-gold/30 text-[10px] font-mono text-gold uppercase tracking-widest font-bold">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-hover border border-gold/30 text-[10px] font-mono text-gold uppercase tracking-widest font-bold">
               <Sparkles className="w-3 h-3" /> ELITE
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-white/80 uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-hover border border-border text-[10px] font-mono text-text-secondary uppercase tracking-widest">
               <Zap className="w-3 h-3 text-warning" /> PRO
             </div>
           )}
@@ -268,7 +282,7 @@ export default function Dashboard() {
               <span className="font-mono text-xs uppercase tracking-widest">Out</span>
             </Button>
             <div
-              className="w-8 h-8 rounded-full border border-white/10 bg-[#111] flex items-center justify-center font-mono text-[10px] uppercase cursor-pointer"
+              className="w-8 h-8 rounded-full border border-border bg-[#111] flex items-center justify-center font-mono text-[10px] uppercase cursor-pointer"
               title={userEmail}
               onClick={() => router.push("/profile")}
             >
@@ -278,16 +292,48 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-6 py-12">
-        {loading ? (
+      <main className="max-w-2xl mx-auto px-6 py-8 pb-32">
+        <GlobalKat />
+        
+        <div className="space-y-8">
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h1 className="text-2xl font-semibold tracking-tight">Debt Shield</h1>
+            </div>
+            <div className="bg-surface border border-border rounded-2xl p-6 flex items-center justify-between shadow-sm">
+              <div>
+                <p className="text-xs font-mono uppercase tracking-widest text-text-muted mb-1">Total Liability</p>
+                <div id="dashboard-total-debt" className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold font-numeric">{formatCurrency(totalLiability, currency)}</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-mono uppercase tracking-widest text-text-muted mb-1">Aegis Wallet</p>
+                <div className="flex items-baseline gap-1 justify-end">
+                  <span className="text-2xl font-bold font-numeric text-success">{formatCurrency(walletBalance, currency)}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4 flex gap-3">
+              <Button size="sm" variant="secondary" onClick={() => router.push("/onboarding")} className="flex-1 text-xs" icon={<Scan className="w-4 h-4"/>}>
+                AI Scan
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setShowManualEntry(true)} className="flex-1 text-xs" icon={<Plus className="w-4 h-4"/>}>
+                Manual Entry
+              </Button>
+            </div>
+          </section>
+
+          {loading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
-            <div className="w-8 h-8 border-2 border-white/10 border-t-white/60 rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-border border-t-white/60 rounded-full animate-spin" />
             <span className="font-mono text-xs text-text-muted uppercase tracking-widest">Loading</span>
           </div>
         ) : payments.length === 0 ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-24 text-center">
-            <div className="w-20 h-20 rounded-full border border-white/10 bg-white/5 flex items-center justify-center mb-6">
+            <div className="w-20 h-20 rounded-full border border-border bg-surface-hover flex items-center justify-center mb-6">
               <Scan className="w-8 h-8 text-text-muted" />
             </div>
             <h2 className="text-2xl font-medium tracking-tight mb-3">No liabilities tracked</h2>
@@ -301,61 +347,15 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-6">
 
-            {/* HERO — Exposure number */}
-            <div
-              id="dashboard-exposure-hero"
-              className="text-center py-8"
-            >
-              <p className="font-mono text-[11px] text-text-muted uppercase tracking-widest mb-3">
-                Total BNPL Exposure
-              </p>
-              <h1 className={`text-7xl md:text-8xl font-bold tracking-tighter mb-4 ${exposureColor}`}>
-                {formatCurrency(totalLiability, currency)}
-              </h1>
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-sm font-mono uppercase tracking-widest">
-                <span className={`w-1.5 h-1.5 rounded-full ${hasOverdue ? "bg-danger animate-pulse" : totalLiability > 0 ? "bg-warning" : "bg-success"}`} />
-                {exposureLabel}
-              </div>
-
-              {projectedClearDate && !isDebtFree && (
-                <p className="font-mono text-xs text-text-muted mt-5">
-                  At current pace, all liabilities cleared by: <strong className="text-white">{projectedClearDate}</strong>
-                </p>
-              )}
-
-              {isDebtFree && (
-                <motion.div 
-                  initial={{ scale: 0.9, opacity: 0 }} 
-                  animate={{ scale: 1, opacity: 1 }} 
-                  className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-success/10 border border-success/30 text-success font-mono uppercase tracking-widest text-xs font-bold"
-                >
-                  <Sparkles className="w-4 h-4" /> DEBT FREE CELEBRATION
-                </motion.div>
-              )}
-
-              {totalFeesPrevented > 0 && (
-                <button
-                  onClick={() => router.push("/community")}
-                  className="mt-6 flex items-center gap-2 mx-auto text-sm text-text-secondary hover:text-white transition-colors font-mono"
-                >
-                  <DollarSign className="w-4 h-4 text-success" />
-                  {formatCurrency(totalFeesPrevented, currency)} in late fees prevented
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <PixelKat streak={streakCount} hasOverdue={hasOverdue} tier={tier} activePayments={activePayments} />
-              <HealthScore score={healthScore} />
             </div>
 
             {/* Visual Timeline (Phase 7D) */}
             {activePayments.length > 0 && (
-              <div className="bg-[#050505] border border-white/5 rounded-xl p-6 overflow-hidden relative">
+              <div className="bg-background border border-border rounded-xl p-6 overflow-hidden relative">
                 <h3 className="font-mono text-[10px] text-text-muted uppercase tracking-widest mb-4">Exposure Timeline</h3>
                 <div className="relative h-16 w-full flex items-center">
-                  <div className="absolute left-0 right-0 h-px bg-white/10" />
+                  <div className="absolute left-0 right-0 h-px bg-surface-active" />
                   {activePayments.map((p, i) => {
                     const daysLeft = Math.ceil((new Date(p.due_date).getTime() - Date.now()) / 86400000);
                     // Map 0-30 days to 0-100% width
@@ -364,7 +364,7 @@ export default function Dashboard() {
                       <div 
                         key={p.id} 
                         className={`absolute w-3 h-3 rounded-full -translate-y-1/2 -translate-x-1/2 cursor-pointer
-                          ${p.status === 'overdue' ? 'bg-danger animate-pulse' : daysLeft < 3 ? 'bg-warning' : 'bg-white/50'}
+                          ${p.status === 'overdue' ? 'bg-danger animate-pulse' : daysLeft < 3 ? 'bg-warning' : 'bg-surface-hover0'}
                         `}
                         style={{ left: `${leftPos}%`, top: '50%' }}
                         title={`${p.provider_name}: ${formatCurrency(Number(p.amount_due), currency)} in ${daysLeft} days`}
@@ -385,7 +385,7 @@ export default function Dashboard() {
             {tier !== "elite" && activePayments.length > 0 && (
               <div 
                 onClick={() => router.push('/upgrade')}
-                className="rounded-xl border border-white/5 bg-[#0A0A0A] p-5 cursor-pointer hover:border-gold/30 transition-colors flex items-center justify-between"
+                className="rounded-xl border border-border bg-surface p-5 cursor-pointer hover:border-gold/30 transition-colors flex items-center justify-between"
               >
                 <div>
                   <h3 className="text-sm font-medium flex items-center gap-2"><Sparkles className="w-4 h-4 text-gold" /> Executive AI Briefing</h3>
@@ -399,7 +399,7 @@ export default function Dashboard() {
             <div>
               <div
                 id="dashboard-active-tab"
-                className="flex items-center gap-0 border-b border-white/5 mb-5"
+                className="flex items-center gap-0 border-b border-border mb-5"
               >
                 {[
                   { id: "active" as const, label: "Active", icon: <List className="w-3.5 h-3.5" />, count: activePayments.length },
@@ -410,13 +410,13 @@ export default function Dashboard() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 px-4 pb-3 text-xs font-mono uppercase tracking-widest transition-colors border-b-2 -mb-px ${
                       activeTab === tab.id
-                        ? "text-white border-white"
-                        : "text-text-muted border-transparent hover:text-white/60"
+                        ? "text-text-primary border-white"
+                        : "text-text-muted border-transparent hover:text-text-muted"
                     }`}
                   >
                     {tab.icon}
                     {tab.label}
-                    <span className="bg-white/10 px-1.5 py-0.5 rounded text-[9px]">{tab.count}</span>
+                    <span className="bg-surface-active px-1.5 py-0.5 rounded text-[9px]">{tab.count}</span>
                   </button>
                 ))}
               </div>
@@ -425,7 +425,7 @@ export default function Dashboard() {
               {activeTab === "active" && (
                 <div className="space-y-2">
                   {sortedPayments.length === 0 ? (
-                    <div className="text-center py-12 border border-white/5 border-dashed rounded-xl">
+                    <div className="text-center py-12 border border-border border-dashed rounded-xl">
                       <p className="text-success font-mono text-sm">Zero active liabilities.</p>
                       <p className="text-text-muted text-xs mt-1 font-mono">Credit file fully protected.</p>
                     </div>
@@ -440,18 +440,18 @@ export default function Dashboard() {
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.04 }}
-                        className={`group bg-[#0A0A0A] border rounded-xl p-4 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between ${
-                          isOverdue ? "border-danger/20 bg-danger/5" : "border-white/5 hover:border-white/10"
+                        className={`group bg-surface border rounded-xl p-4 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between ${
+                          isOverdue ? "border-danger/20 bg-danger/5" : "border-border hover:border-border"
                         }`}
                       >
                         <div className="flex gap-4 items-center flex-1">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono text-[10px] uppercase font-bold ${
-                            isOverdue ? "bg-danger/10 text-danger" : "bg-white/5 text-text-muted"
+                            isOverdue ? "bg-danger/10 text-danger" : "bg-surface-hover text-text-muted"
                           }`}>
                             {(payment.provider_name || "UN").substring(0, 2)}
                           </div>
                           <div>
-                            <p className="font-medium text-white text-sm mb-0.5">{payment.provider_name}</p>
+                            <p className="font-medium text-text-primary text-sm mb-0.5">{payment.provider_name}</p>
                             <div className="flex items-center gap-2 text-[11px] text-text-secondary font-mono">
                               <span className="capitalize">Liability</span>
                               <span>·</span>
@@ -466,7 +466,7 @@ export default function Dashboard() {
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-4 sm:w-auto border-t sm:border-0 border-white/5 pt-3 sm:pt-0">
+                        <div className="flex items-center justify-between sm:justify-end gap-4 sm:w-auto border-t sm:border-0 border-border pt-3 sm:pt-0">
                           <div className="flex items-center gap-1 text-danger/70 font-mono text-[10px]">
                             <TrendingDown className="w-3 h-3" />
                             <span>-{ficoImpact} pts if missed</span>
@@ -480,7 +480,7 @@ export default function Dashboard() {
                               <Button
                                 size="sm"
                                 onClick={() => handleSettle(payment)}
-                                className="h-8 px-3 font-mono text-xs uppercase tracking-widest bg-danger text-white hover:bg-danger/80 border-none"
+                                className="h-8 px-3 font-mono text-xs uppercase tracking-widest bg-danger text-text-primary hover:bg-danger/80 border-none"
                               >
                                 Settle Now
                               </Button>
@@ -490,13 +490,13 @@ export default function Dashboard() {
                                     navigator.clipboard.writeText(`Hi ${payment.provider_name} Support,\n\nI am writing to request a brief 5-day extension on my upcoming payment of ${formatCurrency(Number(payment.amount_due), payment.currency || currency)}. I am experiencing a temporary cash flow delay and will settle the balance on [DATE].\n\nThank you.`);
                                     toast.success("Extension email drafted to clipboard.");
                                   }}
-                                  className="text-[10px] text-text-muted hover:text-white font-mono text-left"
+                                  className="text-[10px] text-text-muted hover:text-text-primary font-mono text-left"
                                 >
                                   &gt; Draft Extension
                                 </button>
                                 <button 
                                   onClick={() => toast.info("Refinance simulator mocked.")}
-                                  className="text-[10px] text-text-muted hover:text-white font-mono text-left"
+                                  className="text-[10px] text-text-muted hover:text-text-primary font-mono text-left"
                                 >
                                   &gt; Sim Refinance
                                 </button>
@@ -523,7 +523,7 @@ export default function Dashboard() {
               {activeTab === "history" && (
                 <div className="space-y-2">
                   {historyPayments.length === 0 ? (
-                    <div className="text-center py-12 border border-white/5 border-dashed rounded-xl">
+                    <div className="text-center py-12 border border-border border-dashed rounded-xl">
                       <p className="text-text-muted font-mono text-sm">No settled payments yet.</p>
                     </div>
                   ) : historyPayments.map((payment, i) => (
@@ -532,13 +532,13 @@ export default function Dashboard() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: i * 0.03 }}
-                      className="bg-[#0A0A0A] border border-white/5 rounded-xl p-4 flex items-center gap-4 opacity-60"
+                      className="bg-surface border border-border rounded-xl p-4 flex items-center gap-4 opacity-60"
                     >
                       <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center text-success flex-shrink-0">
                         <Check className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white line-through truncate">{payment.provider_name}</p>
+                        <p className="text-sm text-text-primary line-through truncate">{payment.provider_name}</p>
                         <p className="text-[11px] text-text-muted font-mono capitalize">
                           Settled {new Date(payment.paid_at || "").toLocaleDateString("en-GB")}
                         </p>
@@ -558,11 +558,11 @@ export default function Dashboard() {
               <button
                 onClick={handleShare}
                 disabled={shareLoading}
-                className="group relative bg-[#050505] border border-white/5 hover:border-white/10 rounded-xl p-5 text-left transition-all overflow-hidden"
+                className="group relative bg-background border border-border hover:border-border rounded-xl p-5 text-left transition-all overflow-hidden"
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-success/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/4" />
                 <Shield className="w-5 h-5 text-success mb-3" />
-                <p className="font-medium text-sm text-white mb-1">Share Your Shield</p>
+                <p className="font-medium text-sm text-text-primary mb-1">Share Your Shield</p>
                 <p className="text-xs text-text-muted font-mono leading-relaxed">
                   Generate your Debt Shield Card and share with friends.
                 </p>
@@ -570,12 +570,12 @@ export default function Dashboard() {
 
               {/* Referral */}
               {referralCode && (
-                <div className="bg-[#050505] border border-white/5 rounded-xl p-5 overflow-hidden relative">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-white/3 blur-3xl rounded-full -translate-y-1/2 translate-x-1/4" />
+                <div className="bg-background border border-border rounded-xl p-5 overflow-hidden relative">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/3 blur-3xl rounded-full -translate-y-1/2 translate-x-1/4" />
                   <Share2 className="w-5 h-5 text-text-secondary mb-3" />
-                  <p className="font-medium text-sm text-white mb-1">Give Pro, Get Pro.</p>
-                  <div className="flex items-center gap-2 mt-3 bg-[#111] border border-white/10 rounded-lg p-1">
-                    <span className="flex-1 font-mono text-[11px] text-white/60 px-2 truncate">
+                  <p className="font-medium text-sm text-text-primary mb-1">Give Pro, Get Pro.</p>
+                  <div className="flex items-center gap-2 mt-3 bg-[#111] border border-border rounded-lg p-1">
+                    <span className="flex-1 font-mono text-[11px] text-text-muted px-2 truncate">
                       getaegis.app/?ref={referralCode}
                     </span>
                     <Button
@@ -595,6 +595,7 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        </div>
       </main>
     </div>
   );

@@ -46,10 +46,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
           className={`
             relative flex items-center
-            bg-white/[0.05] backdrop-blur-xl
+            bg-primary/[0.05] backdrop-blur-xl
             border rounded-[12px]
             transition-all duration-200
-            ${error ? "border-danger/50" : "border-white/10"}
+            ${error ? "border-danger/50" : "border-border"}
             ${isFocused && !error ? "shadow-lg shadow-primary/10" : ""}
           `}
         >

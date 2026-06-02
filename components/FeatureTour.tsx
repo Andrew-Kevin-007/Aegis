@@ -63,11 +63,11 @@ export default function FeatureTour() {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-[#0A0A0A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            className="relative w-full max-w-md bg-surface border border-border rounded-2xl shadow-2xl overflow-hidden"
           >
             <button 
               onClick={handleClose}
-              className="absolute top-4 right-4 text-text-muted hover:text-white transition-colors"
+              className="absolute top-4 right-4 text-text-muted hover:text-text-primary transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -81,7 +81,7 @@ export default function FeatureTour() {
                 Aegis Tour ({currentStep + 1}/{STEPS.length})
               </div>
               
-              <h2 className="text-2xl font-semibold text-white mb-4">
+              <h2 className="text-2xl font-semibold text-text-primary mb-4">
                 {STEPS[currentStep].title}
               </h2>
               

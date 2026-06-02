@@ -85,14 +85,14 @@ export default function UpgradePage() {
 
       <button 
         onClick={() => router.push("/dashboard")} 
-        className="absolute top-8 left-8 text-text-secondary hover:text-white flex items-center gap-2 font-mono text-xs uppercase z-10"
+        className="absolute top-8 left-8 text-text-secondary hover:text-text-primary flex items-center gap-2 font-mono text-xs uppercase z-10"
       >
         <ChevronLeft className="w-4 h-4" /> Back to Dashboard
       </button>
 
       <div className="w-full max-w-5xl z-10">
         <div className="text-center mb-16">
-          <Sparkles className="w-10 h-10 text-white mx-auto mb-4" />
+          <Sparkles className="w-10 h-10 text-text-primary mx-auto mb-4" />
           <h1 className="text-3xl font-semibold tracking-tight">Upgrade to Pro</h1>
           <p className="text-text-secondary text-sm mt-2 max-w-md mx-auto">
             Unlock fully automated alerting, unlimited scans, and advanced credit protection.
@@ -103,7 +103,7 @@ export default function UpgradePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           
           {/* Pro Monthly */}
-          <Card variant="elevated" className="border-white/5 relative flex flex-col">
+          <Card variant="elevated" className="border-border relative flex flex-col">
             <div className="mb-6 flex-1">
               <span className="font-mono text-xs uppercase tracking-widest text-text-muted block mb-4">Aegis Pro</span>
               <div className="flex items-baseline mb-2">
@@ -114,19 +114,19 @@ export default function UpgradePage() {
               
               <div className="space-y-3 mb-8">
                 <div className="flex gap-3 items-start">
-                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-text-primary/50 flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-text-secondary">Unlimited AI scans</span>
                 </div>
                 <div className="flex gap-3 items-start">
-                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-text-primary/50 flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-text-secondary">48-hour automated alerts</span>
                 </div>
                 <div className="flex gap-3 items-start">
-                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-text-primary/50 flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-text-secondary">Live Greyscale Kat companion</span>
                 </div>
                 <div className="flex gap-3 items-start">
-                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-text-primary/50 flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-text-secondary">Global Leaderboard Access</span>
                 </div>
               </div>
@@ -143,41 +143,41 @@ export default function UpgradePage() {
           </Card>
 
           {/* Elite Annual */}
-          <Card variant="elevated" className="border-white/20 bg-white/5 relative flex flex-col scale-105 shadow-2xl z-10">
+          <Card variant="elevated" className="border-border-hover bg-surface-hover relative flex flex-col scale-105 shadow-2xl z-10">
             <div className="absolute -top-3 inset-x-0 flex justify-center">
-              <span className="bg-white text-black text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+              <span className="bg-primary text-primary-inverse text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
                 Ultimate Control
               </span>
             </div>
             
             <div className="mb-6 flex-1">
-              <span className="font-mono text-xs uppercase tracking-widest text-white block mb-4 flex items-center gap-2">Aegis Elite <Sparkles className="w-3 h-3 text-gold" /></span>
+              <span className="font-mono text-xs uppercase tracking-widest text-text-primary block mb-4 flex items-center gap-2">Aegis Elite <Sparkles className="w-3 h-3 text-gold" /></span>
               <div className="flex items-baseline mb-2">
                 <span className="text-4xl font-bold font-numeric text-warning">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("elite-annual"))}</span>
                 <span className="text-text-muted text-xs ml-1">/ year</span>
               </div>
-              <p className="text-white/80 text-sm mb-6">AES-256 Encrypted Vault and Executive AI Briefings.</p>
+              <p className="text-text-secondary text-sm mb-6">AES-256 Encrypted Vault and Executive AI Briefings.</p>
               
               <div className="space-y-3 mb-8">
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-white">Everything in Pro</span>
+                  <span className="text-sm text-text-primary">Everything in Pro</span>
                 </div>
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-white font-bold">AES-256 Encrypted Data Vault</span>
+                  <span className="text-sm text-text-primary font-bold">AES-256 Encrypted Data Vault</span>
                 </div>
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-white">Executive AI Roast Briefing</span>
+                  <span className="text-sm text-text-primary">Executive AI Roast Briefing</span>
                 </div>
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-white">Priority SMS Alerts</span>
+                  <span className="text-sm text-text-primary">Priority SMS Alerts</span>
                 </div>
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-white text-warning">Gold Crown Elite Community Flair</span>
+                  <span className="text-sm text-text-primary text-warning">Gold Crown Elite Community Flair</span>
                 </div>
               </div>
             </div>
@@ -193,7 +193,7 @@ export default function UpgradePage() {
           </Card>
 
           {/* Pro Annual */}
-          <Card variant="elevated" className="border-white/5 relative flex flex-col">
+          <Card variant="elevated" className="border-border relative flex flex-col">
             <div className="mb-6 flex-1">
               <div className="flex justify-between items-start mb-4">
                 <span className="font-mono text-xs uppercase tracking-widest text-text-muted block">Pro Annual</span>
@@ -206,11 +206,11 @@ export default function UpgradePage() {
               
               <div className="space-y-3 mb-8">
                 <div className="flex gap-3 items-start">
-                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-text-primary/50 flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-text-secondary">Everything in Pro Monthly</span>
                 </div>
                 <div className="flex gap-3 items-start">
-                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-text-primary/50 flex-shrink-0 mt-0.5" />
                   <span className="text-sm text-text-secondary">2 months free</span>
                 </div>
               </div>

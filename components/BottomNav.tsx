@@ -28,7 +28,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A]/90 backdrop-blur-xl border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-xl border-t border-border pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around h-16 px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -38,7 +38,7 @@ export default function BottomNav() {
               <Link key={item.name} href={item.href} className="relative -top-5">
                 <motion.div
                   whileTap={{ scale: 0.9 }}
-                  className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                  className="w-14 h-14 bg-primary text-primary-inverse rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                 >
                   <item.icon className="w-6 h-6" />
                 </motion.div>
@@ -52,7 +52,7 @@ export default function BottomNav() {
               key={item.name}
               href={item.href}
               className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
-                isActive ? "text-success" : "text-text-muted hover:text-white"
+                isActive ? "text-success" : "text-text-muted hover:text-text-primary"
               }`}
             >
               <item.icon className="w-5 h-5 mb-1" />

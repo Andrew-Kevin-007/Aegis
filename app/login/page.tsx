@@ -44,7 +44,7 @@ function LoginForm() {
   return (
     <div className="w-full max-w-sm flex flex-col gap-8">
 
-      <Link href="/" className="flex items-center gap-2 text-text-muted text-xs font-mono uppercase tracking-widest hover:text-white transition-colors self-start">
+      <Link href="/" className="flex items-center gap-2 text-text-muted text-xs font-mono uppercase tracking-widest hover:text-text-primary transition-colors self-start">
         <ArrowLeft className="w-3 h-3" /> Home
       </Link>
 
@@ -65,7 +65,7 @@ function LoginForm() {
             </div>
             <h1 className="text-2xl font-semibold tracking-tight mt-4">Check Your Inbox</h1>
             <p className="text-text-secondary text-sm mt-2">
-              We sent a magic link to <span className="text-white font-medium">{email}</span>.
+              We sent a magic link to <span className="text-text-primary font-medium">{email}</span>.
               Click the link to sign in.
             </p>
           </>

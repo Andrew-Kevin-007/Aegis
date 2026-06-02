@@ -17,13 +17,13 @@ interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref"> {
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-white text-black hover:bg-neutral-200",
+    "bg-primary text-primary-inverse hover:bg-neutral-200",
   secondary:
-    "bg-[#111111] text-white shadow-inner-border hover:shadow-inner-border-hover hover:bg-[#1A1A1A]",
+    "bg-surface-hover text-text-primary shadow-inner-border hover:shadow-inner-border-hover hover:bg-surface-active",
   danger:
-    "bg-danger text-white hover:bg-red-600",
+    "bg-danger text-text-primary hover:bg-red-600",
   ghost:
-    "bg-transparent text-text-secondary hover:text-white",
+    "bg-transparent text-text-secondary hover:text-text-primary",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

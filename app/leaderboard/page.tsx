@@ -49,15 +49,15 @@ export default function LeaderboardPage() {
       
       <button 
         onClick={() => router.push("/dashboard")} 
-        className="absolute top-8 left-8 text-text-secondary hover:text-white hidden md:flex items-center gap-2 font-mono text-xs uppercase z-10"
+        className="absolute top-8 left-8 text-text-secondary hover:text-text-primary hidden md:flex items-center gap-2 font-mono text-xs uppercase z-10"
       >
         <ChevronLeft className="w-4 h-4" /> Dashboard
       </button>
 
       <div className="max-w-2xl mx-auto z-10 relative">
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
-            <Trophy className="w-8 h-8 text-white" />
+          <div className="w-16 h-16 bg-surface-hover border border-border rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
+            <Trophy className="w-8 h-8 text-text-primary" />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight mb-2">Global Leaderboard</h1>
           <p className="text-text-secondary text-sm font-mono tracking-wide">
@@ -65,22 +65,22 @@ export default function LeaderboardPage() {
           </p>
         </div>
 
-        <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/10 mb-8 max-w-sm mx-auto">
-          <button className="flex-1 py-1.5 text-xs font-mono uppercase bg-white text-black rounded-lg shadow-sm">All Time</button>
-          <button className="flex-1 py-1.5 text-xs font-mono uppercase text-text-muted hover:text-white transition-colors">This Week</button>
-          <button className="flex-1 py-1.5 text-xs font-mono uppercase text-text-muted hover:text-white transition-colors">This Month</button>
+        <div className="flex gap-2 p-1 bg-surface-hover rounded-xl border border-border mb-8 max-w-sm mx-auto">
+          <button className="flex-1 py-1.5 text-xs font-mono uppercase bg-primary text-primary-inverse rounded-lg shadow-sm">All Time</button>
+          <button className="flex-1 py-1.5 text-xs font-mono uppercase text-text-muted hover:text-text-primary transition-colors">This Week</button>
+          <button className="flex-1 py-1.5 text-xs font-mono uppercase text-text-muted hover:text-text-primary transition-colors">This Month</button>
         </div>
 
         {loading ? (
           <div className="flex flex-col gap-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse h-16 bg-white/5 rounded-xl" />
+              <div key={i} className="animate-pulse h-16 bg-surface-hover rounded-xl" />
             ))}
           </div>
         ) : (
           <div className="space-y-3">
             {leaders.length === 0 ? (
-              <div className="text-center py-10 text-text-muted text-sm border border-white/5 border-dashed rounded-xl">
+              <div className="text-center py-10 text-text-muted text-sm border border-border border-dashed rounded-xl">
                 No leaders yet. Be the first.
               </div>
             ) : leaders.map((leader, index) => {
@@ -97,10 +97,10 @@ export default function LeaderboardPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   key={leader.id} 
-                  className={`flex items-center gap-4 bg-[#0A0A0A] p-4 rounded-xl transition-all ${
+                  className={`flex items-center gap-4 bg-surface p-4 rounded-xl transition-all ${
                     isCurrentUser 
                       ? "border border-success/50 shadow-[0_0_20px_rgba(0,255,135,0.1)] relative overflow-hidden" 
-                      : "border border-white/5 hover:border-white/10"
+                      : "border border-border hover:border-border"
                   }`}
                 >
                   {isCurrentUser && (
@@ -118,17 +118,17 @@ export default function LeaderboardPage() {
                   
                   <div className="flex-1 flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center font-mono text-[10px] uppercase font-bold border ${
-                      isCurrentUser ? "bg-success/10 border-success/30 text-success" : "bg-white/5 border-white/10 text-text-secondary"
+                      isCurrentUser ? "bg-success/10 border-success/30 text-success" : "bg-surface-hover border-border text-text-secondary"
                     }`}>
                       {leader.id.substring(0, 2)}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium ${isCurrentUser ? "text-white" : "text-white/80"}`}>
+                        <span className={`text-sm font-medium ${isCurrentUser ? "text-text-primary" : "text-text-secondary"}`}>
                           User_{leader.id.substring(0, 6)}
                         </span>
                         {isCurrentUser && (
-                          <span className="text-[9px] bg-success text-black px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">
+                          <span className="text-[9px] bg-success text-primary-inverse px-1.5 py-0.5 rounded font-bold uppercase tracking-widest">
                             You
                           </span>
                         )}

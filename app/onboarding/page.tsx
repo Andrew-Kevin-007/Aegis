@@ -13,7 +13,8 @@ import { addDemoPayments } from "@/app/actions";
 
 export default function Onboarding() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
+  const [companionName, setCompanionName] = useState("");
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [extractedPayments, setExtractedPayments] = useState<Payment[]>([]);
@@ -101,22 +102,77 @@ export default function Onboarding() {
   return (
     <main className="min-h-screen bg-background flex flex-col sm:justify-center items-center relative overflow-hidden">
       <Toaster theme="dark" closeButton />
-      <div className="w-full max-w-[400px] h-[100dvh] sm:h-[800px] sm:max-h-[90vh] bg-[#0A0A0A] sm:border sm:border-white/5 sm:rounded-[32px] flex flex-col relative overflow-hidden">
+      <div className="w-full max-w-[400px] h-[100dvh] sm:h-[800px] sm:max-h-[90vh] bg-surface sm:border sm:border-border sm:rounded-[32px] flex flex-col relative overflow-hidden">
         
         {/* Header */}
-        <div className="h-14 flex items-center justify-between px-4 border-b border-white/5 absolute top-0 inset-x-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-md">
-          {step > 1 && !loading ? (
-            <button onClick={() => setStep(1)} className="text-text-secondary hover:text-white p-2 -ml-2">
+        <div className="h-14 flex items-center justify-between px-4 border-b border-border absolute top-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-md">
+          {step > 0 && !loading ? (
+            <button onClick={() => setStep(s => s - 1)} className="text-text-secondary hover:text-text-primary p-2 -ml-2">
               <ChevronLeft className="w-5 h-5" />
             </button>
           ) : <div className="w-9" />}
-          <span className="font-mono text-xs tracking-widest text-text-muted">SCAN</span>
+          <span className="font-mono text-xs tracking-widest text-text-muted">
+            {step === 0 ? "WELCOME" : "SCAN"}
+          </span>
           <div className="w-9" />
         </div>
 
         <div className="flex-1 mt-14 relative">
           <AnimatePresence mode="wait">
             
+            {/* STEP 0: Name Companion */}
+            {step === 0 && (
+              <motion.div
+                key="step0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex flex-col p-6"
+              >
+                <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto">
+                  <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mb-6">
+                    <ShieldCheck className="w-10 h-10 text-primary" />
+                  </div>
+                  <h2 className="text-2xl font-medium tracking-tight mb-3">Initialize Aegis</h2>
+                  <p className="text-text-secondary text-sm leading-relaxed mb-8">
+                    Aegis is your proactive financial AI. It lives on your screen, protects your credit score, and negotiates late fees. 
+                    <br/><br/>What should we call your companion?
+                  </p>
+                  
+                  <div className="w-full relative">
+                    <input 
+                      type="text" 
+                      value={companionName}
+                      onChange={(e) => setCompanionName(e.target.value)}
+                      placeholder="e.g. Buster, Jarvis, Cleo..."
+                      className="w-full h-14 bg-surface border border-border text-text-primary px-4 rounded-xl font-medium text-center focus:outline-none focus:border-primary transition-colors"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                
+                <div className="pb-8">
+                  <Button 
+                    fullWidth 
+                    size="lg" 
+                    onClick={async () => {
+                      if (!companionName.trim()) {
+                        toast.error("Please enter a name");
+                        return;
+                      }
+                      const { data: { user } } = await createClient().auth.getUser();
+                      if (user) {
+                        await createClient().from("users").update({ companion_name: companionName.trim() }).eq("id", user.id);
+                      }
+                      setStep(1);
+                    }}
+                  >
+                    Continue
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
             {/* STEP 1: Upload */}
             {step === 1 && (
               <motion.div
@@ -127,7 +183,7 @@ export default function Onboarding() {
                 className="absolute inset-0 flex flex-col p-6"
               >
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                  <div className="w-20 h-20 rounded-full border border-white/10 flex items-center justify-center mb-6">
+                  <div className="w-20 h-20 rounded-full border border-border flex items-center justify-center mb-6">
                     <Scan className="w-8 h-8 text-text-secondary" />
                   </div>
                   <h2 className="text-xl font-medium tracking-tight mb-2">Upload Screenshot</h2>
@@ -138,7 +194,7 @@ export default function Onboarding() {
                 
                 <div className="pb-8 space-y-4">
                   <label className="w-full relative">
-                    <div className="w-full h-14 bg-white text-black font-medium rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-neutral-200 transition-colors">
+                    <div className="w-full h-14 bg-primary text-primary-inverse font-medium rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-neutral-200 transition-colors">
                       <Camera className="w-5 h-5" />
                       Open Photo Library
                     </div>
@@ -169,10 +225,10 @@ export default function Onboarding() {
                   <div className="absolute inset-x-0 h-32 bg-gradient-to-b from-transparent to-white/20 animate-scan-line border-b border-white" />
                   
                   {/* Vault Animation */}
-                  <div className="absolute inset-0 p-6 flex flex-col items-center justify-center font-mono text-[10px] text-white/50 leading-relaxed overflow-hidden bg-black/60 backdrop-blur-sm">
+                  <div className="absolute inset-0 p-6 flex flex-col items-center justify-center font-mono text-[10px] text-text-primary/50 leading-relaxed overflow-hidden bg-black/60 backdrop-blur-sm">
                     <ShieldCheck className="w-12 h-12 text-success animate-pulse mb-6" />
-                    <p className="mb-2 text-white font-bold tracking-widest text-xs">&gt; AES-256 ENCRYPTION INIT</p>
-                    <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden mb-4">
+                    <p className="mb-2 text-text-primary font-bold tracking-widest text-xs">&gt; AES-256 ENCRYPTION INIT</p>
+                    <div className="w-48 h-1 bg-surface-active rounded-full overflow-hidden mb-4">
                       <div className="h-full bg-success w-full animate-pulse origin-left scale-x-50" />
                     </div>
                     <p className="mb-1">&gt; ISOLATING IMAGE DATA...</p>
@@ -190,10 +246,10 @@ export default function Onboarding() {
                 key="step3"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute inset-0 flex flex-col p-6 bg-[#0A0A0A]"
+                className="absolute inset-0 flex flex-col p-6 bg-surface"
               >
                 <div className="flex-1 flex flex-col justify-center">
-                  <div className="font-mono text-xs text-text-muted mb-4 uppercase tracking-widest border-b border-white/5 pb-2">
+                  <div className="font-mono text-xs text-text-muted mb-4 uppercase tracking-widest border-b border-border pb-2">
                     Analysis Complete
                   </div>
                   
@@ -207,12 +263,12 @@ export default function Onboarding() {
                   {overdueCount > 0 ? (
                     <div className="border border-danger/30 bg-danger/5 rounded-xl p-5 mb-6">
                       <p className="text-danger font-mono text-[10px] uppercase tracking-widest mb-2">[ CRITICAL ALERTS ]</p>
-                      <p className="text-white text-sm">{overdueCount} payment(s) are marked as overdue. Protect your credit file immediately.</p>
+                      <p className="text-text-primary text-sm">{overdueCount} payment(s) are marked as overdue. Protect your credit file immediately.</p>
                     </div>
                   ) : (
                     <div className="border border-success/30 bg-success/5 rounded-xl p-5 mb-6">
                       <p className="text-success font-mono text-[10px] uppercase tracking-widest mb-2">[ HEALTH REPORT ]</p>
-                      <p className="text-white text-sm">All payments are upcoming. No immediate late risks detected.</p>
+                      <p className="text-text-primary text-sm">All payments are upcoming. No immediate late risks detected.</p>
                     </div>
                   )}
                 </div>

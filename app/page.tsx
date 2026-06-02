@@ -9,7 +9,7 @@ import { useState } from "react";
 function FaqItem({ question, answer }: { question: string, answer: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-white/5 py-4">
+    <div className="border-b border-border py-4">
       <button 
         onClick={() => setOpen(!open)} 
         className="flex w-full justify-between items-center text-left"
@@ -31,7 +31,7 @@ export default function LandingPage() {
     <main className="min-h-screen bg-background text-text-primary">
       
       {/* Navbar */}
-      <nav className="fixed top-0 inset-x-0 h-16 border-b border-white/5 bg-background/80 backdrop-blur-xl z-50 flex items-center px-6">
+      <nav className="fixed top-0 inset-x-0 h-16 border-b border-border bg-background/80 backdrop-blur-xl z-50 flex items-center px-6">
         <div className="max-w-6xl mx-auto w-full flex justify-between items-center">
           <span className="font-bold tracking-tighter text-lg">Aegis.</span>
           <div className="flex gap-4">
@@ -98,11 +98,11 @@ export default function LandingPage() {
           className="mt-12 flex items-center justify-center flex-wrap gap-4 sm:gap-8 text-text-muted font-mono text-xs uppercase tracking-widest"
         >
           <span>Klarna</span>
-          <span className="w-px h-4 bg-white/10" />
+          <span className="w-px h-4 bg-surface-active" />
           <span>Afterpay</span>
-          <span className="w-px h-4 bg-white/10" />
+          <span className="w-px h-4 bg-surface-active" />
           <span>Clearpay</span>
-          <span className="w-px h-4 bg-white/10 hidden sm:block" />
+          <span className="w-px h-4 bg-surface-active hidden sm:block" />
           <span className="hidden sm:inline">Zero Bank Syncing</span>
         </motion.div>
 
@@ -112,21 +112,21 @@ export default function LandingPage() {
       <section className="px-6 pb-24 max-w-5xl mx-auto">
         <h2 className="text-3xl font-semibold tracking-tight text-center mb-12">How Aegis Works</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="p-6 rounded-2xl bg-[#0A0A0A] border border-white/5">
+          <div className="p-6 rounded-2xl bg-surface border border-border">
             <div className="text-text-muted font-mono text-sm mb-4">01</div>
             <h3 className="text-xl font-medium mb-2">Upload a screenshot</h3>
             <p className="text-text-secondary text-sm">
               Take a screenshot of your BNPL app. No need to connect your bank account or share sensitive credentials.
             </p>
           </div>
-          <div className="p-6 rounded-2xl bg-[#0A0A0A] border border-white/5">
+          <div className="p-6 rounded-2xl bg-surface border border-border">
             <div className="text-text-muted font-mono text-sm mb-4">02</div>
             <h3 className="text-xl font-medium mb-2">See what you owe</h3>
             <p className="text-text-secondary text-sm">
               Our intelligent engine extracts your due dates and amounts instantly. We even calculate the potential credit score impact if you miss a payment.
             </p>
           </div>
-          <div className="p-6 rounded-2xl bg-[#0A0A0A] border border-white/5">
+          <div className="p-6 rounded-2xl bg-surface border border-border">
             <div className="text-text-muted font-mono text-sm mb-4">03</div>
             <h3 className="text-xl font-medium mb-2">Get 48-hour alerts</h3>
             <p className="text-text-secondary text-sm">
@@ -137,24 +137,24 @@ export default function LandingPage() {
       </section>
 
       {/* Value Props */}
-      <section className="border-t border-white/5 py-24 px-6 bg-[#050505]">
+      <section className="border-t border-border py-24 px-6 bg-background">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-16">
           <div>
-            <ShieldCheck className="w-8 h-8 mb-6 text-white" />
+            <ShieldCheck className="w-8 h-8 mb-6 text-text-primary" />
             <h3 className="text-2xl font-medium tracking-tight mb-3">Credit Shield</h3>
             <p className="text-text-secondary leading-relaxed">
               BNPL late payments are now reported to credit bureaus under FICO 10. A single missed Klarna payment can lower your score by up to 40 points.
             </p>
           </div>
           <div>
-            <Zap className="w-8 h-8 mb-6 text-white" />
+            <Zap className="w-8 h-8 mb-6 text-text-primary" />
             <h3 className="text-2xl font-medium tracking-tight mb-3">Smart Alerts</h3>
             <p className="text-text-secondary leading-relaxed">
               Never forget a payment again. Aegis acts as your personal financial watchdog, keeping track of scattered BNPL liabilities across multiple apps.
             </p>
           </div>
           <div>
-            <Activity className="w-8 h-8 mb-6 text-white" />
+            <Activity className="w-8 h-8 mb-6 text-text-primary" />
             <h3 className="text-2xl font-medium tracking-tight mb-3">Screenshot Intelligence</h3>
             <p className="text-text-secondary leading-relaxed">
               Zero bank linking required. Snap your screen and Aegis reads the data in under 5 seconds. Radical simplicity and maximum privacy.
@@ -187,16 +187,16 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-12 px-6">
+      <footer className="border-t border-border py-12 px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-4">
             <span className="font-bold tracking-tighter">Aegis.</span>
             <span className="text-text-muted text-xs">The BNPL Credit Score Shield</span>
           </div>
           <div className="flex gap-6 text-text-muted text-xs font-mono uppercase tracking-widest">
-            <a href="#" className="hover:text-white transition-colors">Terms</a>
-            <a href="#" className="hover:text-white transition-colors">Privacy</a>
-            <a href="mailto:support@getaegis.app" className="hover:text-white transition-colors">Contact</a>
+            <a href="#" className="hover:text-text-primary transition-colors">Terms</a>
+            <a href="#" className="hover:text-text-primary transition-colors">Privacy</a>
+            <a href="mailto:support@getaegis.app" className="hover:text-text-primary transition-colors">Contact</a>
           </div>
         </div>
       </footer>

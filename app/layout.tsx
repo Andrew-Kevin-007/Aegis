@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import ReferralTracker from "@/components/ReferralTracker";
 import BottomNav from "@/components/BottomNav";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -42,16 +43,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased">
-        <Suspense fallback={null}>
-          <ReferralTracker />
-        </Suspense>
-        <ServiceWorkerRegister />
-        <div className="pb-20 md:pb-0 min-h-screen">
-          {children}
-        </div>
-        <BottomNav />
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <body className="font-sans antialiased bg-background text-text-primary">
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+          <Suspense fallback={null}>
+            <ReferralTracker />
+          </Suspense>
+          <ServiceWorkerRegister />
+          <div className="pb-20 md:pb-0 min-h-screen">
+            {children}
+          </div>
+          <BottomNav />
+        </ThemeProvider>
       </body>
     </html>
   );

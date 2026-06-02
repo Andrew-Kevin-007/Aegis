@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     // Check if we already have a fresh report (cached per-scan)
     const { data: existing } = await supabase
       .from("users")
-      .select("ai_report, ai_report_at")
+      .select("ai_report, ai_report_at, ai_tone, companion_name")
       .eq("id", user.id)
       .single();
 
@@ -36,21 +36,34 @@ export async function POST(request: Request) {
     const { code, currency } = detectRegion();
     const regulationContext = getRegionRegulation(code);
 
-    const prompt = `You are a credit specialist at Aegis, a financial protection startup.
-A user has the following active BNPL payments:
+    const tone = existing?.ai_tone || "hype";
+    const name = existing?.companion_name || "Aegis AI";
+
+    const roastPrompt = `You are ${name}, a snarky, brutally honest financial AI. 
+The user has these active BNPL payments:
 ${JSON.stringify(payments, null, 2)}
 
-Write a concise plain-English BNPL Health Report in exactly 3 sections:
+Write a concise BNPL Health Report roasting their spending habits.
+Format in 3 sections:
+ROAST SUMMARY: (1 sarcastic sentence)
+INTERVENTION PLAN:
+- (specific payment to prioritise)
+CREDIT THREAT: (1 sentence — what the upcoming ${regulationContext} means for them, make it sound serious)
+Rules: Be funny but blunt. No emojis. Max 130 words. Use ${currency}.`;
 
-RISK SUMMARY: (1 sentence — overall risk level and why)
+    const hypePrompt = `You are ${name}, a highly encouraging, supportive financial AI (like Duolingo). 
+The user has these active BNPL payments:
+${JSON.stringify(payments, null, 2)}
 
-RECOMMENDED ACTION:
-- (specific payment to prioritise and why)
-- (second action if applicable)
+Write a concise, positive BNPL Health Report motivating them.
+Format in 3 sections:
+HYPE SUMMARY: (1 encouraging sentence)
+ACTION PLAN:
+- (specific payment to prioritise)
+CREDIT BOOST: (1 sentence — what the upcoming ${regulationContext} means for them positively if they pay on time)
+Rules: Be extremely supportive. No emojis. Max 130 words. Use ${currency}.`;
 
-CREDIT IMPACT: (1 sentence — what the upcoming ${regulationContext} means for their specific situation)
-
-Rules: Direct, expert tone. No emojis. No jargon. Max 130 words total. Use ${currency} for amounts.`;
+    const prompt = tone === "roast" ? roastPrompt : hypePrompt;
 
     const result = await model.generateContent(prompt);
     const report = result.response.text().trim();

@@ -14,11 +14,11 @@ interface CardProps extends Omit<HTMLMotionProps<"div">, "ref"> {
 
 const variantStyles: Record<CardVariant, string> = {
   default:
-    "bg-[#0A0A0A] shadow-inner-border rounded-[12px]",
+    "bg-surface shadow-inner-border rounded-[12px]",
   elevated:
-    "bg-[#0A0A0A] shadow-inner-border rounded-[12px] shadow-glow",
+    "bg-surface shadow-inner-border rounded-[12px] shadow-glow",
   interactive:
-    "bg-[#0A0A0A] shadow-inner-border rounded-[12px] hover:bg-[#111111] hover:shadow-inner-border-hover transition-all duration-200 cursor-pointer",
+    "bg-surface shadow-inner-border rounded-[12px] hover:bg-surface-hover hover:shadow-inner-border-hover transition-all duration-200 cursor-pointer",
 };
 
 const paddingStyles: Record<CardPadding, string> = {

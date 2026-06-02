@@ -24,7 +24,7 @@ export default function FlexCard({ streak, totalFeesPrevented, tier, onClose }: 
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute -top-12 right-0 p-2 text-white/50 hover:text-white transition-colors"
+          className="absolute -top-12 right-0 p-2 text-text-primary/50 hover:text-text-primary transition-colors"
         >
           <X className="w-6 h-6" />
         </button>
@@ -32,7 +32,7 @@ export default function FlexCard({ streak, totalFeesPrevented, tier, onClose }: 
         {/* The Card (Canvas Target) */}
         <div 
           ref={cardRef}
-          className="w-full aspect-[4/5] rounded-[32px] overflow-hidden relative bg-[#050505] border border-white/10 shadow-[0_0_50px_rgba(255,255,255,0.1)] flex flex-col"
+          className="w-full aspect-[4/5] rounded-[32px] overflow-hidden relative bg-background border border-border shadow-[0_0_50px_rgba(255,255,255,0.1)] flex flex-col"
         >
           {/* Background Effects */}
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white/10 via-transparent to-transparent opacity-50" />
@@ -41,8 +41,8 @@ export default function FlexCard({ streak, totalFeesPrevented, tier, onClose }: 
           <div className="relative z-10 flex flex-col h-full p-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-auto">
-              <span className="font-bold tracking-tighter text-xl text-white font-mono">AEGIS.</span>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-white uppercase tracking-widest">
+              <span className="font-bold tracking-tighter text-xl text-text-primary font-mono">AEGIS.</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-hover border border-border text-[10px] font-mono text-text-primary uppercase tracking-widest">
                 <Shield className="w-3 h-3 text-success" />
                 {tier === 'elite' ? 'ELITE' : 'SECURED'}
               </div>
@@ -52,21 +52,21 @@ export default function FlexCard({ streak, totalFeesPrevented, tier, onClose }: 
             <div className="flex flex-col items-center justify-center text-center space-y-4 my-auto">
               {streak > 0 ? (
                 <>
-                  <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                  <div className="w-24 h-24 rounded-full bg-surface-hover border border-border flex items-center justify-center">
                     <span className="text-5xl">🔥</span>
                   </div>
                   <div>
-                    <h1 className="text-6xl font-black tracking-tighter text-white font-numeric">{streak}</h1>
+                    <h1 className="text-6xl font-black tracking-tighter text-text-primary font-numeric">{streak}</h1>
                     <p className="text-sm text-text-muted font-mono uppercase tracking-widest mt-1">Day Streak</p>
                   </div>
                 </>
               ) : (
                 <>
-                  <div className="w-24 h-24 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                  <div className="w-24 h-24 rounded-full bg-surface-hover border border-border flex items-center justify-center">
                     <Shield className="w-10 h-10 text-success" />
                   </div>
                   <div>
-                    <h1 className="text-4xl font-black tracking-tighter text-white font-mono">ZERO</h1>
+                    <h1 className="text-4xl font-black tracking-tighter text-text-primary font-mono">ZERO</h1>
                     <p className="text-sm text-text-muted font-mono uppercase tracking-widest mt-1">Liabilities</p>
                   </div>
                 </>
@@ -74,7 +74,7 @@ export default function FlexCard({ streak, totalFeesPrevented, tier, onClose }: 
             </div>
 
             {/* Footer */}
-            <div className="mt-auto border-t border-white/10 pt-6">
+            <div className="mt-auto border-t border-border pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest mb-1">Total Saved</p>
@@ -82,7 +82,7 @@ export default function FlexCard({ streak, totalFeesPrevented, tier, onClose }: 
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] text-text-muted font-mono uppercase tracking-widest mb-1">Status</p>
-                  <p className="font-bold text-white text-sm font-mono flex items-center gap-1">
+                  <p className="font-bold text-text-primary text-sm font-mono flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-gold" /> TOP 1%
                   </p>
                 </div>

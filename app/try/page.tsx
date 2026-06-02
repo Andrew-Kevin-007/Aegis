@@ -90,15 +90,15 @@ export default function TryPage() {
   return (
     <main className="min-h-screen bg-background flex flex-col sm:justify-center items-center relative overflow-hidden">
       <Toaster theme="dark" closeButton />
-      <div className="w-full max-w-[400px] h-[100dvh] sm:h-[800px] sm:max-h-[90vh] bg-[#0A0A0A] sm:border sm:border-white/5 sm:rounded-[32px] flex flex-col relative overflow-hidden">
+      <div className="w-full max-w-[400px] h-[100dvh] sm:h-[800px] sm:max-h-[90vh] bg-surface sm:border sm:border-border sm:rounded-[32px] flex flex-col relative overflow-hidden">
         
-        <div className="h-14 flex items-center justify-between px-4 border-b border-white/5 absolute top-0 inset-x-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-md">
+        <div className="h-14 flex items-center justify-between px-4 border-b border-border absolute top-0 inset-x-0 z-50 bg-surface/80 backdrop-blur-md">
           {step > 1 && !loading ? (
-            <button onClick={() => setStep(1)} className="text-text-secondary hover:text-white p-2 -ml-2">
+            <button onClick={() => setStep(1)} className="text-text-secondary hover:text-text-primary p-2 -ml-2">
               <ChevronLeft className="w-5 h-5" />
             </button>
           ) : (
-            <Link href="/" className="text-text-secondary hover:text-white p-2 -ml-2">
+            <Link href="/" className="text-text-secondary hover:text-text-primary p-2 -ml-2">
               <ChevronLeft className="w-5 h-5" />
             </Link>
           )}
@@ -118,7 +118,7 @@ export default function TryPage() {
                 className="absolute inset-0 flex flex-col p-6"
               >
                 <div className="flex-1 flex flex-col items-center justify-center text-center">
-                  <div className="w-20 h-20 rounded-full border border-white/10 flex items-center justify-center mb-6">
+                  <div className="w-20 h-20 rounded-full border border-border flex items-center justify-center mb-6">
                     <Scan className="w-8 h-8 text-text-secondary" />
                   </div>
                   <h2 className="text-xl font-medium tracking-tight mb-2">Upload Screenshot</h2>
@@ -129,7 +129,7 @@ export default function TryPage() {
                 
                 <div className="pb-8 space-y-4">
                   <label className="w-full relative">
-                    <div className="w-full h-14 bg-white text-black font-medium rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-neutral-200 transition-colors">
+                    <div className="w-full h-14 bg-primary text-primary-inverse font-medium rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-neutral-200 transition-colors">
                       <Camera className="w-5 h-5" />
                       Open Photo Library
                     </div>
@@ -156,7 +156,7 @@ export default function TryPage() {
                     <Image src={fileUrl} alt="Scan" fill unoptimized className="object-cover opacity-30 grayscale" />
                   )}
                   <div className="absolute inset-x-0 h-32 bg-gradient-to-b from-transparent to-white/20 animate-scan-line border-b border-white" />
-                  <div className="absolute inset-0 p-6 font-mono text-[10px] text-white/50 leading-relaxed overflow-hidden">
+                  <div className="absolute inset-0 p-6 font-mono text-[10px] text-text-primary/50 leading-relaxed overflow-hidden">
                     <p className="mb-2">&gt; INIT OCR MATRIX...</p>
                     <p className="mb-2">&gt; READING GRAPHICS...</p>
                     <p className="mb-2">&gt; DECODING VALUE LAYER...</p>
@@ -171,10 +171,10 @@ export default function TryPage() {
                 key="step3"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="absolute inset-0 flex flex-col p-6 bg-[#0A0A0A]"
+                className="absolute inset-0 flex flex-col p-6 bg-surface"
               >
                 <div className="flex-1 flex flex-col justify-center">
-                  <div className="font-mono text-xs text-text-muted mb-4 uppercase tracking-widest border-b border-white/5 pb-2">
+                  <div className="font-mono text-xs text-text-muted mb-4 uppercase tracking-widest border-b border-border pb-2">
                     Analysis Complete
                   </div>
                   
@@ -188,20 +188,20 @@ export default function TryPage() {
                   {overdueCount > 0 ? (
                     <div className="border border-danger/30 bg-danger/5 rounded-xl p-5 mb-6">
                       <p className="text-danger font-mono text-[10px] uppercase tracking-widest mb-2">[ CRITICAL ALERTS ]</p>
-                      <p className="text-white text-sm">{overdueCount} payment(s) are marked as overdue. This is hurting your credit score right now.</p>
+                      <p className="text-text-primary text-sm">{overdueCount} payment(s) are marked as overdue. This is hurting your credit score right now.</p>
                     </div>
                   ) : (
                     <div className="border border-success/30 bg-success/5 rounded-xl p-5 mb-6">
                       <p className="text-success font-mono text-[10px] uppercase tracking-widest mb-2">[ HEALTH REPORT ]</p>
-                      <p className="text-white text-sm">All payments are upcoming. No immediate late risks detected.</p>
+                      <p className="text-text-primary text-sm">All payments are upcoming. No immediate late risks detected.</p>
                     </div>
                   )}
 
                   <div className="space-y-2 mt-4 text-sm text-text-secondary">
                     {extractedPayments.slice(0, 3).map((p, i) => (
-                      <div key={i} className="flex justify-between p-3 bg-white/5 rounded-lg">
+                      <div key={i} className="flex justify-between p-3 bg-surface-hover rounded-lg">
                         <span>{p.provider} • {new Date(p.due_date).toLocaleDateString()}</span>
-                        <span className="font-medium text-white">£{Number(p.amount_due).toFixed(2)}</span>
+                        <span className="font-medium text-text-primary">£{Number(p.amount_due).toFixed(2)}</span>
                       </div>
                     ))}
                     {extractedPayments.length > 3 && (

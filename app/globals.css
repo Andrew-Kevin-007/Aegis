@@ -6,9 +6,44 @@
    Aegis V2 — Hyper-Minimalist System
    ================================ */
 
-:root {
-  --background: #000000;
-  --foreground: #FFFFFF;
+@layer base {
+  :root {
+    /* Adaptive Clarity (Light Theme - default) */
+    --background: #FAFAFC;
+    --surface: #FFFFFF;
+    --surface-hover: #F2F2F7;
+    --surface-active: #E5E5EA;
+    
+    --primary: #1C1C1E;
+    --primary-inverse: #FFFFFF;
+    
+    --text-primary: #1C1C1E;
+    --text-secondary: #3A3A3C;
+    --text-muted: #8E8E93;
+    
+    --border: #E5E5EA;
+    --border-hover: #D1D1D6;
+    --border-focus: #AEAEB2;
+  }
+
+  .dark {
+    /* Cyberpunk (Dark Theme) */
+    --background: #000000;
+    --surface: #0A0A0A;
+    --surface-hover: #111111;
+    --surface-active: #1A1A1A;
+    
+    --primary: #FFFFFF;
+    --primary-inverse: #000000;
+    
+    --text-primary: #FFFFFF;
+    --text-secondary: #888888;
+    --text-muted: #555555;
+    
+    --border: #1A1A1A;
+    --border-hover: #2A2A2A;
+    --border-focus: #4A4A4A;
+  }
 }
 
 /* Base */
@@ -26,7 +61,7 @@ html {
 
 body {
   background-color: var(--background);
-  color: var(--foreground);
+  color: var(--text-primary);
   min-height: 100vh;
   overflow-x: hidden;
   /* Very subtle noise grain across the whole app */
@@ -41,11 +76,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1A1A1A;
+  background: var(--border);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2A2A2A;
+  background: var(--border-hover);
 }
 
 /* Selection */
