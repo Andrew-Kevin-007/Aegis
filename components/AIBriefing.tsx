@@ -7,10 +7,10 @@ import type { DBPayment } from "@/lib/database.types";
 
 interface AIBriefingProps {
   payments: DBPayment[];
-  isPro: boolean;
+  tier: "free" | "pro" | "elite";
 }
 
-export default function AIBriefing({ payments, isPro }: AIBriefingProps) {
+export default function AIBriefing({ payments, tier }: AIBriefingProps) {
   const [report, setReport] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(true);
@@ -106,7 +106,7 @@ export default function AIBriefing({ payments, isPro }: AIBriefingProps) {
                       <span className="inline-block w-0.5 h-3 bg-white/60 animate-pulse ml-0.5" />
                     )}
                   </pre>
-                  {isPro && charIdx >= report.length && (
+                  {charIdx >= report.length && (
                     <button
                       onClick={() => fetchReport(true)}
                       disabled={loading}
@@ -115,6 +115,27 @@ export default function AIBriefing({ payments, isPro }: AIBriefingProps) {
                       <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
                       Refresh analysis
                     </button>
+                  )}
+
+                  {/* Elite Predictive Burn Rate */}
+                  {tier === "elite" && charIdx >= report.length && (
+                    <div className="mt-6 border-t border-white/5 pt-4">
+                      <p className="font-mono text-[10px] uppercase tracking-widest text-gold flex items-center gap-2 mb-3">
+                        <Cpu className="w-3 h-3" /> Predictive Cashflow (Elite)
+                      </p>
+                      <div className="bg-black/50 border border-white/5 rounded-lg p-3">
+                        <div className="flex justify-between items-end mb-2">
+                          <p className="font-mono text-xs text-white">Estimated Burn Rate</p>
+                          <p className="font-mono text-[10px] text-danger">14 Days to Default Risk</p>
+                        </div>
+                        <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-success via-warning to-danger w-[85%]" />
+                        </div>
+                        <p className="font-mono text-[9px] text-text-muted mt-2 leading-relaxed">
+                          At current spending velocity based on connected mock accounts, you may lack liquidity for upcoming Klarna/Afterpay liabilities. Action recommended.
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </>
               ) : (

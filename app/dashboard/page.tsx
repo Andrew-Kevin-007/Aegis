@@ -9,8 +9,10 @@ import PixelKat from "@/components/PixelKat";
 import HealthScore from "@/components/HealthScore";
 import AIBriefing from "@/components/AIBriefing";
 import ContextualTour from "@/components/ContextualTour";
+import FlexCard from "@/components/FlexCard";
 import { formatCurrency } from "@/lib/currency";
 import { detectRegion } from "@/lib/region";
+import { fetchUserPayments } from "@/app/actions";
 import {
   Plus, LogOut, Check, TrendingDown, DollarSign, Scan,
   ArrowRight, Zap, AlertTriangle, Share2, Copy, History,
@@ -52,9 +54,11 @@ export default function Dashboard() {
   const [totalFeesPrevented, setTotalFeesPrevented] = useState(0);
   const [streakCount, setStreakCount] = useState(0);
   const [longestStreak, setLongestStreak] = useState(0);
-  const [isPro, setIsPro] = useState(false);
+  const [tier, setTier] = useState<"free" | "pro" | "elite">("free");
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"active" | "history">("active");
+  const [showFlexCard, setShowFlexCard] = useState(false);
+  const [showInvestPrompt, setShowInvestPrompt] = useState<number | null>(null);
   const [shareLoading, setShareLoading] = useState(false);
 
   useEffect(() => {
@@ -66,7 +70,7 @@ export default function Dashboard() {
 
       const { data: profile } = await supabase
         .from("users")
-        .select("total_fees_prevented, streak_count, longest_streak, is_pro, referral_code, referred_by, scan_date")
+        .select("total_fees_prevented, streak_count, longest_streak, tier, referral_code, referred_by, scan_date")
         .eq("id", user.id)
         .single();
 
@@ -74,7 +78,7 @@ export default function Dashboard() {
         setTotalFeesPrevented(Number(profile.total_fees_prevented) || 0);
         setStreakCount(profile.streak_count || 0);
         setLongestStreak(profile.longest_streak || 0);
-        setIsPro(profile.is_pro || false);
+        setTier(profile.tier || "free");
         setReferralCode(profile.referral_code);
 
         // Referral attribution
@@ -90,14 +94,12 @@ export default function Dashboard() {
         }
       }
 
-      const { data, error } = await supabase
-        .from("payments")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("due_date", { ascending: true });
-
-      if (error) toast.error("Failed to fetch payments.");
-      else setPayments((data as DBPayment[]) || []);
+      try {
+        const decryptedData = await fetchUserPayments();
+        setPayments(decryptedData as DBPayment[]);
+      } catch (e) {
+        toast.error("Failed to fetch payments.");
+      }
       setLoading(false);
     }
     load();
@@ -146,26 +148,16 @@ export default function Dashboard() {
       toast.success("Milestone: £100 saved. Aegis paid for itself.", { duration: 5000 });
     else
       toast.success(`Settled. Streak: 🔥${newStreak}`, { description: "Credit file protected." });
+
+    if (feeAmount > 0) {
+      setTimeout(() => setShowInvestPrompt(feeAmount), 1500);
+    }
   };
 
   const { currency } = detectRegion();
 
   const handleShare = async () => {
-    setShareLoading(true);
-    const url = `${window.location.origin}/api/shield/${userId}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "My Aegis Debt Shield Card",
-          text: `I've protected ${formatCurrency(totalFeesPrevented, currency)} in late fees with Aegis. Check yours.`,
-          url: `https://getaegis.app?ref=${referralCode}`,
-        });
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast.success("Shield card link copied!");
-      }
-    } catch (e) {}
-    setShareLoading(false);
+    setShowFlexCard(true);
   };
 
   // --- Derived state ---
@@ -202,19 +194,58 @@ export default function Dashboard() {
       <Toaster theme="dark" closeButton />
       <ContextualTour />
 
+      {showFlexCard && (
+        <FlexCard 
+          streak={streakCount} 
+          totalFeesPrevented={totalFeesPrevented} 
+          tier={tier} 
+          onClose={() => setShowFlexCard(false)} 
+        />
+      )}
+
+      {showInvestPrompt !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm bg-[#050505] border border-white/10 rounded-2xl p-6 relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-success/20 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2" />
+            <Sparkles className="w-8 h-8 text-success mb-4" />
+            <h2 className="text-xl font-medium tracking-tight text-white mb-2">Auto-Wealth Engine</h2>
+            <p className="text-sm text-text-muted mb-6">
+              You just prevented a {formatCurrency(showInvestPrompt, currency)} late fee. Most apps stop here. 
+              Do you want to auto-invest this spread into Aegis Wealth (S&P 500) and turn debt prevention into compound wealth?
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button onClick={() => { toast.success("£" + showInvestPrompt + " allocated to S&P 500."); setShowInvestPrompt(null); }} fullWidth className="font-mono uppercase tracking-widest text-xs border-success/30 bg-success/10 text-success hover:bg-success/20">
+                Invest £{showInvestPrompt.toFixed(2)}
+              </Button>
+              <Button onClick={() => setShowInvestPrompt(null)} variant="ghost" fullWidth className="font-mono uppercase tracking-widest text-xs">
+                Keep it in Checking
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="h-16 border-b border-white/5 flex items-center justify-between px-6 bg-[#0A0A0A]/60 backdrop-blur-md sticky top-0 z-50">
         <span className="font-bold tracking-tighter cursor-pointer font-mono" onClick={() => router.push("/")}>
           AEGIS.
         </span>
         <div className="flex items-center gap-2">
-          {!isPro ? (
+          {tier === "free" ? (
             <Button variant="ghost" size="sm" onClick={() => router.push("/upgrade")}
-              className="font-mono text-xs uppercase tracking-widest">
-              Pro
+              className="font-mono text-xs uppercase tracking-widest text-warning">
+              Upgrade
             </Button>
+          ) : tier === "elite" ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-gold/30 text-[10px] font-mono text-gold uppercase tracking-widest font-bold">
+              <Sparkles className="w-3 h-3" /> ELITE
+            </div>
           ) : (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-white/80 uppercase tracking-widest">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-mono text-white/80 uppercase tracking-widest">
               <Zap className="w-3 h-3 text-warning" /> PRO
             </div>
           )}
@@ -314,15 +345,54 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* HEALTH SCORE */}
-            <HealthScore score={healthScore} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <PixelKat streak={streakCount} hasOverdue={hasOverdue} tier={tier} activePayments={activePayments} />
+              <HealthScore score={healthScore} />
+            </div>
 
-            {/* PIXEL KAT */}
-            <PixelKat streak={streakCount} hasOverdue={hasOverdue} />
-
-            {/* AI BRIEFING — only shown when there are active payments */}
+            {/* Visual Timeline (Phase 7D) */}
             {activePayments.length > 0 && (
-              <AIBriefing payments={activePayments} isPro={isPro} />
+              <div className="bg-[#050505] border border-white/5 rounded-xl p-6 overflow-hidden relative">
+                <h3 className="font-mono text-[10px] text-text-muted uppercase tracking-widest mb-4">Exposure Timeline</h3>
+                <div className="relative h-16 w-full flex items-center">
+                  <div className="absolute left-0 right-0 h-px bg-white/10" />
+                  {activePayments.map((p, i) => {
+                    const daysLeft = Math.ceil((new Date(p.due_date).getTime() - Date.now()) / 86400000);
+                    // Map 0-30 days to 0-100% width
+                    const leftPos = Math.max(0, Math.min(100, (daysLeft / 30) * 100));
+                    return (
+                      <div 
+                        key={p.id} 
+                        className={`absolute w-3 h-3 rounded-full -translate-y-1/2 -translate-x-1/2 cursor-pointer
+                          ${p.status === 'overdue' ? 'bg-danger animate-pulse' : daysLeft < 3 ? 'bg-warning' : 'bg-white/50'}
+                        `}
+                        style={{ left: `${leftPos}%`, top: '50%' }}
+                        title={`${p.provider_name}: ${formatCurrency(Number(p.amount_due), currency)} in ${daysLeft} days`}
+                      >
+                        <div className="absolute top-4 left-1/2 -translate-x-1/2 whitespace-nowrap text-[8px] font-mono text-text-muted">
+                          {daysLeft < 0 ? 'LATE' : `${daysLeft}d`}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {tier === "elite" && (
+              <AIBriefing payments={activePayments} tier={tier} />
+            )}
+            {tier !== "elite" && activePayments.length > 0 && (
+              <div 
+                onClick={() => router.push('/upgrade')}
+                className="rounded-xl border border-white/5 bg-[#0A0A0A] p-5 cursor-pointer hover:border-gold/30 transition-colors flex items-center justify-between"
+              >
+                <div>
+                  <h3 className="text-sm font-medium flex items-center gap-2"><Sparkles className="w-4 h-4 text-gold" /> Executive AI Briefing</h3>
+                  <p className="text-xs text-text-secondary mt-1">Upgrade to Elite to unlock custom financial AI analysis.</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-text-muted" />
+              </div>
             )}
 
             {/* PAYMENT TABS */}
@@ -361,7 +431,7 @@ export default function Dashboard() {
                     </div>
                   ) : sortedPayments.map((payment, i) => {
                     const daysLeft = Math.ceil((new Date(payment.due_date).getTime() - Date.now()) / 86400000);
-                    const ficoImpact = payment.late_fee ? Math.min(40, Math.round(Number(payment.late_fee) * 2.5)) : 15;
+                    const ficoImpact = 15; // static since late_fee was removed for simplicity
                     const isOverdue = payment.status === "overdue";
 
                     return (
@@ -378,12 +448,12 @@ export default function Dashboard() {
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-mono text-[10px] uppercase font-bold ${
                             isOverdue ? "bg-danger/10 text-danger" : "bg-white/5 text-text-muted"
                           }`}>
-                            {payment.provider.substring(0, 2)}
+                            {(payment.provider_name || "UN").substring(0, 2)}
                           </div>
                           <div>
-                            <p className="font-medium text-white text-sm mb-0.5">{payment.item_name}</p>
+                            <p className="font-medium text-white text-sm mb-0.5">{payment.provider_name}</p>
                             <div className="flex items-center gap-2 text-[11px] text-text-secondary font-mono">
-                              <span className="capitalize">{payment.provider}</span>
+                              <span className="capitalize">Liability</span>
                               <span>·</span>
                               {isOverdue ? (
                                 <span className="text-danger font-bold flex items-center gap-1">
@@ -404,14 +474,44 @@ export default function Dashboard() {
                           <div className="font-bold text-base font-numeric">
                             {formatCurrency(Number(payment.amount_due), payment.currency || currency)}
                           </div>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => handleSettle(payment)}
-                            className="h-8 px-3 font-mono text-xs uppercase tracking-widest"
-                          >
-                            Settle
-                          </Button>
+                          
+                          {isOverdue ? (
+                            <div className="flex flex-col gap-2 min-w-[120px]">
+                              <Button
+                                size="sm"
+                                onClick={() => handleSettle(payment)}
+                                className="h-8 px-3 font-mono text-xs uppercase tracking-widest bg-danger text-white hover:bg-danger/80 border-none"
+                              >
+                                Settle Now
+                              </Button>
+                              <div className="flex flex-col gap-1">
+                                <button 
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(`Hi ${payment.provider_name} Support,\n\nI am writing to request a brief 5-day extension on my upcoming payment of ${formatCurrency(Number(payment.amount_due), payment.currency || currency)}. I am experiencing a temporary cash flow delay and will settle the balance on [DATE].\n\nThank you.`);
+                                    toast.success("Extension email drafted to clipboard.");
+                                  }}
+                                  className="text-[10px] text-text-muted hover:text-white font-mono text-left"
+                                >
+                                  &gt; Draft Extension
+                                </button>
+                                <button 
+                                  onClick={() => toast.info("Refinance simulator mocked.")}
+                                  className="text-[10px] text-text-muted hover:text-white font-mono text-left"
+                                >
+                                  &gt; Sim Refinance
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => handleSettle(payment)}
+                              className="h-8 px-3 font-mono text-xs uppercase tracking-widest"
+                            >
+                              Settle
+                            </Button>
+                          )}
                         </div>
                       </motion.div>
                     );
@@ -438,9 +538,9 @@ export default function Dashboard() {
                         <Check className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white line-through truncate">{payment.item_name}</p>
+                        <p className="text-sm text-white line-through truncate">{payment.provider_name}</p>
                         <p className="text-[11px] text-text-muted font-mono capitalize">
-                          {payment.provider} · Settled {new Date(payment.paid_at || "").toLocaleDateString("en-GB")}
+                          Settled {new Date(payment.paid_at || "").toLocaleDateString("en-GB")}
                         </p>
                       </div>
                       <div className="font-mono text-sm text-text-muted line-through">

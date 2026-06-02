@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
 import { detectRegion } from "@/lib/region";
+import { Heart } from "lucide-react";
+import type { DBPayment } from "@/lib/database.types";
 
 // Colors for accents
 const C = {
-  fur: "#E8B88A",
-  pink: "#FF9CB4",
-  green: "#00FF87",
-  gold: "#FFD700",
+  fur: "#A0A0A0",
+  pink: "#D0D0D0",
+  green: "#00FF87", // Keep green for the LED/Accent only
+  gold: "#FFD700", // Keep gold for Elite
   danger: "#FF3B30",
 };
 
@@ -28,46 +31,151 @@ function getLevel(streak: number) {
   return 1;
 }
 
-function getSpeechContext(code: string) {
-  switch (code) {
-    case "IN": return "CIBIL doesn't forgive.";
-    case "DE": return "SCHUFA is watching.";
-    case "UK": return "The FCA is taking notes.";
-    case "US": return "FICO remembers everything.";
-    case "AU": return "Credit reporting is active.";
-    default: return "Credit bureaus are watching.";
-  }
-}
-
 interface PixelKatProps {
   streak: number;
   hasOverdue: boolean;
+  tier: "free" | "pro" | "elite";
+  activePayments?: DBPayment[]; // Passed down to generate contextual tips
 }
 
-export default function PixelKat({ streak, hasOverdue }: PixelKatProps) {
+export default function PixelKat({ streak, hasOverdue, tier, activePayments = [] }: PixelKatProps) {
   const level = getLevel(streak);
   const levelData = LEVEL_FRAMES[level];
   const { code } = detectRegion();
-  const context = getSpeechContext(code);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Framer motion tracking
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  
+  const springConfig = { damping: 20, stiffness: 100, mass: 0.5 };
+  const springX = useSpring(mouseX, springConfig);
+  const springY = useSpring(mouseY, springConfig);
+
+  const rotateX = useTransform(springY, [-0.5, 0.5], [15, -15]);
+  const rotateY = useTransform(springX, [-0.5, 0.5], [-15, 15]);
+
+  // Interaction State
+  const [isHappy, setIsHappy] = useState(false);
+  const [hearts, setHearts] = useState<{ id: number; x: number }[]>([]);
+  let heartCounter = useRef(0);
+
+  // Contextual Tips Engine
+  const [tipIndex, setTipIndex] = useState(0);
+  const [typedText, setTypedText] = useState("");
+  const [charIdx, setCharIdx] = useState(0);
+
+  // Generate dynamic tips based on user's active payments and tier
+  const tips = useRef<string[]>([]);
+
+  useEffect(() => {
+    const newTips = [];
+    if (hasOverdue) {
+      newTips.push(`MEOW! Overdue payments detected. Credit bureaus are watching.`);
+      newTips.push(`Tap an overdue payment to see your options!`);
+    } else {
+      if (streak > 0) {
+        newTips.push(`${streak} payments down. Stay on track.`);
+      } else {
+        newTips.push(`Awaiting your first settle. Start building credit.`);
+      }
+
+      if (activePayments.length > 0) {
+        // Find the closest due payment
+        const sorted = [...activePayments].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+        const nextPayment = sorted[0];
+        const daysLeft = Math.ceil((new Date(nextPayment.due_date).getTime() - Date.now()) / 86400000);
+        newTips.push(`Next liability: ${nextPayment.provider_name || 'Payment'} in ${daysLeft} days.`);
+        
+        if (tier === "elite") {
+          newTips.push(`Burn rate optimal. No immediate threats.`);
+        }
+      }
+      newTips.push("Pet me! *purrrrr*");
+    }
+    tips.current = newTips;
+  }, [hasOverdue, streak, activePayments, tier]);
+
+  // Cycle tips every 6 seconds
+  useEffect(() => {
+    if (tips.current.length <= 1) return;
+    const interval = setInterval(() => {
+      setTipIndex((prev) => (prev + 1) % tips.current.length);
+      setCharIdx(0);
+      setTypedText("");
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Typewriter effect
+  useEffect(() => {
+    const currentTip = tips.current[tipIndex] || ">_";
+    if (charIdx < currentTip.length) {
+      const timeout = setTimeout(() => {
+        setTypedText(currentTip.slice(0, charIdx + 1));
+        setCharIdx(c => c + 1);
+      }, 30); // typing speed
+      return () => clearTimeout(timeout);
+    }
+  }, [charIdx, tipIndex]);
+
+  // Cursor tracking
+  useEffect(() => {
+    if (tier === "free") return; 
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      
+      const x = (e.clientX - centerX) / window.innerWidth;
+      const y = (e.clientY - centerY) / window.innerHeight;
+      
+      mouseX.set(x);
+      mouseY.set(y);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, [mouseX, mouseY, tier]);
+
+  const handlePet = () => {
+    if (tier === "free") return; // Petting locked to Pro/Elite
+    setIsHappy(true);
+    
+    // Spawn heart
+    const newHeart = { id: heartCounter.current++, x: Math.random() * 40 - 20 };
+    setHearts(h => [...h, newHeart]);
+    
+    // Remove heart after 1s
+    setTimeout(() => {
+      setHearts(h => h.filter(heart => heart.id !== newHeart.id));
+    }, 1000);
+
+    setTimeout(() => setIsHappy(false), 800);
+  };
 
   let moodClass = "sprite-idle";
-  let speech = streak > 0 ? `${streak} payments down. Stay on track.` : "Awaiting your first settle.";
   
   if (hasOverdue) {
     moodClass = "sprite-stressed";
-    speech = `MEOW! Overdue payments detected. ${context}`;
-  } else if (level >= 4) {
+  } else if (isHappy || level >= 4) {
     moodClass = "sprite-happy";
-    speech = `Legend status. ${streak} payments settled. Undefeated.`;
   } else if (level === 3) {
     moodClass = "sprite-happy";
-    speech = `Warrior mode. ${streak} streak. Keep going.`;
+  }
+
+  // Free tier is static
+  if (tier === "free") {
+    moodClass = "sprite-static";
   }
 
   return (
     <div
       id="dashboard-kat-companion"
-      className="rounded-xl border border-white/5 p-5 bg-[#050505] flex items-center gap-6"
+      className="rounded-xl border border-white/5 p-5 bg-[#050505] flex items-center gap-6 relative"
     >
       <style>{`
         .pixel-kat-container {
@@ -78,6 +186,8 @@ export default function PixelKat({ streak, hasOverdue }: PixelKatProps) {
           background-color: #000;
           border-radius: 8px;
           border: 1px solid rgba(255,255,255,0.1);
+          filter: grayscale(100%) contrast(1.2);
+          cursor: pointer;
         }
         
         .pixel-sprite {
@@ -86,6 +196,11 @@ export default function PixelKat({ streak, hasOverdue }: PixelKatProps) {
           background-image: url('/kat-sprite.png');
           background-size: 256px 256px;
           image-rendering: pixelated;
+        }
+
+        .sprite-static {
+          background-position-y: 0px;
+          background-position-x: 0px;
         }
 
         .sprite-idle {
@@ -102,11 +217,6 @@ export default function PixelKat({ streak, hasOverdue }: PixelKatProps) {
           animation: play-sprite 0.4s steps(4) infinite;
           background-position-y: -128px;
         }
-        
-        .sprite-levelup {
-          animation: play-sprite 0.7s steps(4) infinite;
-          background-position-y: -192px;
-        }
 
         @keyframes play-sprite {
           from { background-position-x: 0px; }
@@ -114,33 +224,66 @@ export default function PixelKat({ streak, hasOverdue }: PixelKatProps) {
         }
       `}</style>
 
+      {/* Floating Hearts */}
+      <AnimatePresence>
+        {hearts.map(heart => (
+          <motion.div
+            key={heart.id}
+            initial={{ opacity: 0, y: 10, x: heart.x, scale: 0.5 }}
+            animate={{ opacity: 1, y: -40, x: heart.x + (Math.random() * 20 - 10), scale: 1 }}
+            exit={{ opacity: 0, y: -60 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="absolute left-10 pointer-events-none text-danger z-10"
+          >
+            <Heart className="w-4 h-4 fill-danger" />
+          </motion.div>
+        ))}
+      </AnimatePresence>
+
       {/* Pixel sprite canvas */}
-      <div className="pixel-kat-container shadow-[0_0_15px_rgba(0,255,135,0.1)]">
+      <motion.div 
+        ref={containerRef}
+        onClick={handlePet}
+        className="pixel-kat-container shadow-[0_0_15px_rgba(255,255,255,0.05)] relative z-0"
+        style={{ 
+          rotateX: tier === "free" ? 0 : rotateX, 
+          rotateY: tier === "free" ? 0 : rotateY,
+          transformStyle: "preserve-3d"
+        }}
+        whileHover={tier !== "free" ? { scale: 1.05 } : {}}
+        whileTap={tier !== "free" ? { scale: 0.95 } : {}}
+      >
         <div className={`pixel-sprite ${moodClass}`} />
-      </div>
+        
+        {/* Status LED */}
+        <div className={`absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full ${hasOverdue ? "bg-danger animate-pulse" : "bg-success"}`} style={{ filter: "grayscale(0)" }} />
+      </motion.div>
 
       {/* Info panel */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span
             className="font-mono text-[10px] uppercase tracking-widest px-2 py-0.5 rounded border text-black font-bold"
-            style={{ backgroundColor: levelData.accent, borderColor: levelData.accent }}
+            style={{ backgroundColor: tier === "elite" ? C.gold : levelData.accent, borderColor: tier === "elite" ? C.gold : levelData.accent }}
           >
-            LVL {level}
+            {tier === "elite" ? "ELITE" : `LVL ${level}`}
           </span>
           <span className="font-mono text-[10px] uppercase tracking-widest text-text-muted">
-            {levelData.label}
+            {tier === "free" ? "Basic Tracking" : tier === "elite" ? "Executive Guard" : levelData.label}
           </span>
         </div>
 
         {/* Speech bubble */}
-        <div className="bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 mt-2 mb-3 relative">
+        <div className="bg-[#0A0A0A] border border-white/10 rounded-lg px-3 py-2 mt-2 mb-3 relative min-h-[42px] flex items-center">
           <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-4 border-y-transparent border-r-4 border-r-white/10" />
           <p
-            className="font-mono text-xs leading-relaxed"
-            style={{ color: hasOverdue ? C.danger : levelData.accent }}
+            className="font-mono text-[11px] leading-relaxed"
+            style={{ color: hasOverdue ? C.danger : tier === "elite" ? C.gold : levelData.accent }}
           >
-            &gt; {speech}
+            &gt; {typedText}
+            {charIdx < (tips.current[tipIndex]?.length || 0) && (
+              <span className="inline-block w-1.5 h-3 bg-current animate-pulse ml-0.5 align-middle" />
+            )}
           </p>
         </div>
 
@@ -150,7 +293,7 @@ export default function PixelKat({ streak, hasOverdue }: PixelKatProps) {
             <span className="font-mono text-xs text-white font-bold">{streak}</span>
             <span className="font-mono text-[10px] text-text-muted uppercase tracking-wider">streak</span>
           </div>
-          {level < 5 && (
+          {level < 5 && tier !== "free" && (
             <div className="flex-1">
               <div className="h-1 bg-white/5 rounded-full overflow-hidden">
                 <div

@@ -9,6 +9,7 @@ import { Camera, ChevronLeft, Scan, ArrowRight, ShieldCheck, AlertTriangle } fro
 import Button from "@/components/ui/Button";
 import type { Payment } from "@/lib/gemini";
 import { toast, Toaster } from "sonner";
+import { addDemoPayments } from "@/app/actions";
 
 export default function Onboarding() {
   const router = useRouter();
@@ -78,25 +79,16 @@ export default function Onboarding() {
     await new Promise((resolve) => setTimeout(resolve, 3000));
     
     const demoData = [
-      { provider: "Klarna", item_name: "ASOS Order", amount_due: 45.00, currency: "GBP", due_date: new Date(Date.now() + 3 * 86400000).toISOString(), late_fee: null, status: "upcoming" },
-      { provider: "Afterpay", item_name: "Nike Sneakers", amount_due: 120.00, currency: "GBP", due_date: new Date(Date.now() - 2 * 86400000).toISOString(), late_fee: 15.00, status: "overdue" },
+      { provider: "Klarna", item_name: "ASOS Order", amount_due: 45.00, currency: "GBP", due_date: new Date(Date.now() + 3 * 86400000).toISOString(), status: "pending" },
+      { provider: "Afterpay", item_name: "Nike Sneakers", amount_due: 120.00, currency: "GBP", due_date: new Date(Date.now() - 2 * 86400000).toISOString(), status: "overdue" },
     ];
     setExtractedPayments(demoData as any);
     
     try {
-      // For the onboarding demo, we inject directly into Supabase so the dashboard works
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const dbInserts = demoData.map(p => ({
-          ...p,
-          user_id: user.id
-        }));
-        await supabase.from("payments").insert(dbInserts);
-      }
+      await addDemoPayments();
     } catch (e) {
       console.error(e);
+      toast.error("Failed to inject demo data into database.");
     }
 
     setLoading(false);
@@ -176,12 +168,17 @@ export default function Onboarding() {
                   {/* Scanning Laser */}
                   <div className="absolute inset-x-0 h-32 bg-gradient-to-b from-transparent to-white/20 animate-scan-line border-b border-white" />
                   
-                  {/* OCR overlay text */}
-                  <div className="absolute inset-0 p-6 font-mono text-[10px] text-white/50 leading-relaxed overflow-hidden">
-                    <p className="mb-2">&gt; INIT OCR MATRIX...</p>
-                    <p className="mb-2">&gt; READING GRAPHICS...</p>
-                    <p className="mb-2">&gt; DECODING VALUE LAYER...</p>
-                    <p className="mb-2">&gt; QUERYING GEMINI ENGINE...</p>
+                  {/* Vault Animation */}
+                  <div className="absolute inset-0 p-6 flex flex-col items-center justify-center font-mono text-[10px] text-white/50 leading-relaxed overflow-hidden bg-black/60 backdrop-blur-sm">
+                    <ShieldCheck className="w-12 h-12 text-success animate-pulse mb-6" />
+                    <p className="mb-2 text-white font-bold tracking-widest text-xs">&gt; AES-256 ENCRYPTION INIT</p>
+                    <div className="w-48 h-1 bg-white/10 rounded-full overflow-hidden mb-4">
+                      <div className="h-full bg-success w-full animate-pulse origin-left scale-x-50" />
+                    </div>
+                    <p className="mb-1">&gt; ISOLATING IMAGE DATA...</p>
+                    <p className="mb-1">&gt; SECURING VAULT CONNECTION...</p>
+                    <p className="mb-1">&gt; EXTRACTING ENTITIES...</p>
+                    <p className="mb-1 text-success mt-2">&gt; DATA SECURED.</p>
                   </div>
                 </div>
               </motion.div>

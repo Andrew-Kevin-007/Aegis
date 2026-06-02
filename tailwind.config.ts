@@ -9,15 +9,15 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#000000",
+        background: "var(--background)",
         surface: {
-          DEFAULT: "#0A0A0A",
-          hover: "#111111",
-          active: "#1A1A1A",
+          DEFAULT: "var(--surface)",
+          hover: "var(--surface-hover)",
+          active: "var(--surface-active)",
         },
         primary: {
-          DEFAULT: "#FFFFFF",
-          inverse: "#000000",
+          DEFAULT: "var(--primary)",
+          inverse: "var(--primary-inverse)",
         },
         success: {
           DEFAULT: "#34C759", // Apple green
@@ -28,15 +28,18 @@ const config: Config = {
         warning: {
           DEFAULT: "#FF9F0A", // Apple orange
         },
+        gold: {
+          DEFAULT: "#FFD700", // Keep gold static
+        },
         text: {
-          primary: "#FFFFFF",
-          secondary: "#888888",
-          muted: "#555555",
+          primary: "var(--text-primary)",
+          secondary: "var(--text-secondary)",
+          muted: "var(--text-muted)",
         },
         border: {
-          DEFAULT: "#1A1A1A",
-          hover: "#2A2A2A",
-          focus: "#4A4A4A",
+          DEFAULT: "var(--border)",
+          hover: "var(--border-hover)",
+          focus: "var(--border-focus)",
         }
       },
       fontFamily: {

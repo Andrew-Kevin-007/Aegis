@@ -6,6 +6,9 @@ CREATE TABLE public.users (
   id uuid REFERENCES auth.users PRIMARY KEY,
   email text,
   is_pro boolean DEFAULT false,
+  tier text DEFAULT 'free',
+  full_name text,
+  phone text,
   pro_expires_at timestamptz,
   scan_count_today int DEFAULT 0,
   scan_date date DEFAULT CURRENT_DATE,
@@ -16,6 +19,10 @@ CREATE TABLE public.users (
   referred_by uuid REFERENCES public.users(id),
   ai_report text,
   ai_report_at timestamptz,
+  alerts_enabled boolean DEFAULT true,
+  companion_name text,
+  ai_tone text DEFAULT 'hype' CHECK (ai_tone IN ('hype', 'roast')),
+  wallet_balance decimal DEFAULT 0,
   created_at timestamptz DEFAULT now()
 );
 
@@ -34,18 +41,16 @@ CREATE POLICY "Users can insert own data" ON public.users
 
 -- Payments table
 CREATE TABLE public.payments (
-  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id uuid REFERENCES public.users(id),
-  provider text NOT NULL,
-  item_name text NOT NULL,
-  amount_due decimal NOT NULL,
+  id uuid DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id uuid REFERENCES public.users(id) ON DELETE CASCADE,
+  provider_name text NOT NULL, -- Will store encrypted string
+  amount_due text NOT NULL, -- Will store encrypted string
   currency text DEFAULT 'GBP',
-  due_date timestamptz NOT NULL,
-  late_fee decimal,
-  status text DEFAULT 'upcoming',
-  alert_sent_48h bool DEFAULT false,
+  due_date date NOT NULL,
+  status text DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'overdue')),
+  created_at timestamptz DEFAULT now(),
   paid_at timestamptz,
-  created_at timestamptz DEFAULT now()
+  notified_at timestamptz
 );
 
 -- Enable RLS for payments

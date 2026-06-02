@@ -10,7 +10,7 @@ import { toast, Toaster } from "sonner";
 import { detectRegion } from "@/lib/region";
 import { formatCurrency } from "@/lib/currency";
 
-type Plan = "monthly" | "half-year" | "annual";
+type Plan = "pro-monthly" | "pro-annual" | "elite-annual";
 
 export default function UpgradePage() {
   const router = useRouter();
@@ -20,15 +20,15 @@ export default function UpgradePage() {
 
   const getPrice = (plan: Plan) => {
     switch (code) {
-      case "IN": return plan === "monthly" ? 299 : plan === "half-year" ? 1499 : 2499;
-      case "US": return plan === "monthly" ? 11.99 : plan === "half-year" ? 59.99 : 99.99;
+      case "IN": return plan === "pro-monthly" ? 299 : plan === "pro-annual" ? 1499 : 2499;
+      case "US": return plan === "pro-monthly" ? 11.99 : plan === "pro-annual" ? 59.99 : 99.99;
       case "DE":
       case "FR":
       case "ES":
-      case "EU": return plan === "monthly" ? 10.99 : plan === "half-year" ? 54.99 : 89.99;
-      case "AU": return plan === "monthly" ? 16.99 : plan === "half-year" ? 84.99 : 139.99;
-      case "SA": return plan === "monthly" ? 39.99 : plan === "half-year" ? 199.99 : 329.99;
-      default: return plan === "monthly" ? 9.99 : plan === "half-year" ? 49.99 : 79.99;
+      case "EU": return plan === "pro-monthly" ? 10.99 : plan === "pro-annual" ? 54.99 : 89.99;
+      case "AU": return plan === "pro-monthly" ? 16.99 : plan === "pro-annual" ? 84.99 : 139.99;
+      case "SA": return plan === "pro-monthly" ? 39.99 : plan === "pro-annual" ? 199.99 : 329.99;
+      default: return plan === "pro-monthly" ? 9.99 : plan === "pro-annual" ? 49.99 : 79.99;
     }
   };
 
@@ -102,24 +102,32 @@ export default function UpgradePage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
           
-          {/* Monthly */}
+          {/* Pro Monthly */}
           <Card variant="elevated" className="border-white/5 relative flex flex-col">
             <div className="mb-6 flex-1">
-              <span className="font-mono text-xs uppercase tracking-widest text-text-muted block mb-4">Monthly</span>
+              <span className="font-mono text-xs uppercase tracking-widest text-text-muted block mb-4">Aegis Pro</span>
               <div className="flex items-baseline mb-2">
-                <span className="text-3xl font-bold font-numeric">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("monthly"))}</span>
+                <span className="text-3xl font-bold font-numeric">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("pro-monthly"))}</span>
                 <span className="text-text-muted text-xs ml-1">/ month</span>
               </div>
-              <p className="text-text-secondary text-sm mb-6">Flexible protection, cancel anytime.</p>
+              <p className="text-text-secondary text-sm mb-6">Unlimited AI scanning and active protection.</p>
               
               <div className="space-y-3 mb-8">
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-text-secondary">Unlimited scans</span>
+                  <span className="text-sm text-text-secondary">Unlimited AI scans</span>
                 </div>
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-text-secondary">48-hour alerts</span>
+                  <span className="text-sm text-text-secondary">48-hour automated alerts</span>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-text-secondary">Live Greyscale Kat companion</span>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-text-secondary">Global Leaderboard Access</span>
                 </div>
               </div>
             </div>
@@ -127,75 +135,83 @@ export default function UpgradePage() {
             <Button 
               fullWidth 
               variant="secondary"
-              isLoading={loading === "monthly"} 
-              onClick={() => handlePayment("monthly")}
+              isLoading={loading === "pro-monthly"} 
+              onClick={() => handlePayment("pro-monthly")}
             >
-              Get Monthly
+              Get Pro Monthly
             </Button>
           </Card>
 
-          {/* Annual */}
+          {/* Elite Annual */}
           <Card variant="elevated" className="border-white/20 bg-white/5 relative flex flex-col scale-105 shadow-2xl z-10">
             <div className="absolute -top-3 inset-x-0 flex justify-center">
               <span className="bg-white text-black text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
-                Most Popular
+                Ultimate Control
               </span>
             </div>
             
             <div className="mb-6 flex-1">
-              <span className="font-mono text-xs uppercase tracking-widest text-white block mb-4">Annual</span>
+              <span className="font-mono text-xs uppercase tracking-widest text-white block mb-4 flex items-center gap-2">Aegis Elite <Sparkles className="w-3 h-3 text-gold" /></span>
               <div className="flex items-baseline mb-2">
-                <span className="text-4xl font-bold font-numeric">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("annual"))}</span>
+                <span className="text-4xl font-bold font-numeric text-warning">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("elite-annual"))}</span>
                 <span className="text-text-muted text-xs ml-1">/ year</span>
               </div>
-              <p className="text-white/80 text-sm mb-6">Save 33%. Equivalent to £6.67/mo.</p>
+              <p className="text-white/80 text-sm mb-6">AES-256 Encrypted Vault and Executive AI Briefings.</p>
               
               <div className="space-y-3 mb-8">
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-white">Unlimited scans</span>
+                  <span className="text-sm text-white">Everything in Pro</span>
                 </div>
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-white">48-hour alerts</span>
+                  <span className="text-sm text-white font-bold">AES-256 Encrypted Data Vault</span>
                 </div>
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-white">Credit Armor Dashboard</span>
+                  <span className="text-sm text-white">Executive AI Roast Briefing</span>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-white">Priority SMS Alerts</span>
+                </div>
+                <div className="flex gap-3 items-start">
+                  <Check className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-white text-warning">Gold Crown Elite Community Flair</span>
                 </div>
               </div>
             </div>
 
             <Button 
               fullWidth 
-              isLoading={loading === "annual"} 
-              onClick={() => handlePayment("annual")}
+              isLoading={loading === "elite-annual"} 
+              onClick={() => handlePayment("elite-annual")}
               icon={<ShieldCheck className="w-4 h-4" />}
             >
-              Get Annual
+              Get Elite Annual
             </Button>
           </Card>
 
-          {/* Half-Year */}
+          {/* Pro Annual */}
           <Card variant="elevated" className="border-white/5 relative flex flex-col">
             <div className="mb-6 flex-1">
               <div className="flex justify-between items-start mb-4">
-                <span className="font-mono text-xs uppercase tracking-widest text-text-muted block">Half-Year</span>
+                <span className="font-mono text-xs uppercase tracking-widest text-text-muted block">Pro Annual</span>
               </div>
               <div className="flex items-baseline mb-2">
-                <span className="text-3xl font-bold font-numeric">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("half-year"))}</span>
-                <span className="text-text-muted text-xs ml-1">/ 6 mo</span>
+                <span className="text-3xl font-bold font-numeric">{new Intl.NumberFormat(undefined, { style: "currency", currency, minimumFractionDigits: currency === 'INR' ? 0 : 2 }).format(getPrice("pro-annual"))}</span>
+                <span className="text-text-muted text-xs ml-1">/ year</span>
               </div>
-              <p className="text-text-secondary text-sm mb-6">Save ~16%. Perfect for building habits.</p>
+              <p className="text-text-secondary text-sm mb-6">Save on monthly costs. Serious protection.</p>
               
               <div className="space-y-3 mb-8">
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-text-secondary">Everything in Pro</span>
+                  <span className="text-sm text-text-secondary">Everything in Pro Monthly</span>
                 </div>
                 <div className="flex gap-3 items-start">
                   <Check className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-text-secondary">Save on monthly costs</span>
+                  <span className="text-sm text-text-secondary">2 months free</span>
                 </div>
               </div>
             </div>
@@ -203,10 +219,10 @@ export default function UpgradePage() {
             <Button 
               fullWidth 
               variant="secondary"
-              isLoading={loading === "half-year"} 
-              onClick={() => handlePayment("half-year")}
+              isLoading={loading === "pro-annual"} 
+              onClick={() => handlePayment("pro-annual")}
             >
-              Get Half-Year
+              Get Pro Annual
             </Button>
           </Card>
 

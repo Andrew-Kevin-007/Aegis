@@ -23,6 +23,7 @@ export default function CommunityPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [newPost, setNewPost] = useState("");
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"feed" | "squad">("feed");
 
   useEffect(() => {
     async function load() {
@@ -104,17 +105,34 @@ export default function CommunityPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <form onSubmit={handlePost} className="flex gap-2">
-              <Input 
-                value={newPost}
-                onChange={(e) => setNewPost(e.target.value)}
-                placeholder="Ask a question or share a victory..."
-                className="flex-1"
-              />
-              <Button type="submit" icon={<Send className="w-4 h-4" />}>Post</Button>
-            </form>
+            <div className="flex bg-[#050505] p-1 rounded-xl border border-white/5 mb-8 w-fit mx-auto">
+              <button 
+                onClick={() => setActiveTab("feed")} 
+                className={`px-6 py-2 rounded-lg text-xs font-mono uppercase tracking-widest transition-all ${activeTab === "feed" ? "bg-white/10 text-white" : "text-text-muted hover:text-white"}`}
+              >
+                Global Feed
+              </button>
+              <button 
+                onClick={() => setActiveTab("squad")} 
+                className={`px-6 py-2 rounded-lg text-xs font-mono uppercase tracking-widest transition-all ${activeTab === "squad" ? "bg-white/10 text-white" : "text-text-muted hover:text-white"}`}
+              >
+                My Squad
+              </button>
+            </div>
 
-            <div className="space-y-4">
+            {activeTab === "feed" ? (
+              <>
+                <form onSubmit={handlePost} className="flex gap-2">
+                  <Input 
+                    value={newPost}
+                    onChange={(e) => setNewPost(e.target.value)}
+                    placeholder="Ask a question or share a victory..."
+                    className="flex-1"
+                  />
+                  <Button type="submit" icon={<Send className="w-4 h-4" />}>Post</Button>
+                </form>
+
+                <div className="space-y-4">
               {posts.length === 0 ? (
                 <div className="text-center py-10 text-text-muted text-sm border border-white/5 border-dashed rounded-xl">
                   Be the first to post.
@@ -146,7 +164,40 @@ export default function CommunityPage() {
                   </button>
                 </motion.div>
               ))}
-            </div>
+                </div>
+              </>
+            ) : (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                <div className="bg-[#050505] border border-white/5 rounded-2xl p-6 text-center">
+                  <h2 className="text-xl font-medium tracking-tight text-white mb-2">Debt-Free Pods</h2>
+                  <p className="text-sm text-text-muted mb-6">Finance is multiplayer. If one squad member misses a payment, the whole pod's health score drops. Hold each other accountable.</p>
+                  
+                  <div className="flex justify-center items-center gap-8 mb-8">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="w-14 h-14 rounded-full border-2 border-success bg-success/10 flex items-center justify-center font-mono text-sm text-success font-bold">YOU</div>
+                      <span className="text-[10px] font-mono text-success uppercase tracking-widest">Safe</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 opacity-50">
+                      <div className="w-14 h-14 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center font-mono text-xl">+</div>
+                      <span className="text-[10px] font-mono text-text-muted uppercase tracking-widest">Invite</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-2 opacity-50">
+                      <div className="w-14 h-14 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center font-mono text-xl">+</div>
+                      <span className="text-[10px] font-mono text-text-muted uppercase tracking-widest">Invite</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-white/5 rounded-xl border border-white/10 mb-6">
+                    <p className="font-mono text-xs text-text-secondary mb-1 uppercase tracking-widest">Pod Health Score</p>
+                    <p className="font-bold text-3xl font-numeric text-white">99<span className="text-lg text-text-muted">/100</span></p>
+                  </div>
+
+                  <Button onClick={() => toast.success("Invite link copied!")} fullWidth className="font-mono uppercase tracking-widest text-xs">
+                    Invite Friends to Pod
+                  </Button>
+                </div>
+              </motion.div>
+            )}
           </div>
         )}
       </div>

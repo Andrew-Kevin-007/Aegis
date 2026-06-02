@@ -41,14 +41,16 @@ export async function POST(request: Request) {
       const plan = notes.plan || "monthly";
 
       if (userId) {
-        let proExpiresAt = null; // null means lifetime
+        let proExpiresAt = null;
+        let newTier = "pro";
         
-        if (plan === "monthly") {
+        if (plan === "pro-monthly") {
           proExpiresAt = new Date(Date.now() + 30 * 86400000).toISOString();
-        } else if (plan === "half-year") {
-          proExpiresAt = new Date(Date.now() + 182 * 86400000).toISOString();
-        } else if (plan === "annual") {
+        } else if (plan === "pro-annual") {
           proExpiresAt = new Date(Date.now() + 365 * 86400000).toISOString();
+        } else if (plan === "elite-annual") {
+          proExpiresAt = new Date(Date.now() + 365 * 86400000).toISOString();
+          newTier = "elite";
         }
 
         // Fetch the user to see if they were referred
@@ -60,7 +62,7 @@ export async function POST(request: Request) {
 
         const { error } = await supabase
           .from("users")
-          .update({ is_pro: true, pro_expires_at: proExpiresAt })
+          .update({ is_pro: true, tier: newTier, pro_expires_at: proExpiresAt })
           .eq("id", userId);
 
         if (error) {

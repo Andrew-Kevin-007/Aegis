@@ -1,46 +1,77 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
-import { createServerClient } from "@supabase/ssr";
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+// Only instantiate Redis if we have real credentials
+const hasUpstashConfig = process.env.UPSTASH_REDIS_REST_URL && 
+                        !process.env.UPSTASH_REDIS_REST_URL.includes('mock');
+
+const redis = hasUpstashConfig ? new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL || '',
+  token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+}) : null;
+
+// Limits: 
+// 5 scans per day for free tier/anonymous
+const extractRateLimit = redis ? new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(5, '1 d'),
+  analytics: true,
+}) : null;
+
+// 10 reports per hour
+const reportRateLimit = redis ? new Ratelimit({
+  redis,
+  limiter: Ratelimit.slidingWindow(10, '1 h'),
+  analytics: true,
+}) : null;
 
 export async function middleware(request: NextRequest) {
-  const response = await updateSession(request);
+  const ip = request.ip ?? '127.0.0.1';
+  const path = request.nextUrl.pathname;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll() {
-          // Handled by updateSession
-        },
-      },
+  // Rate limit /api/extract
+  if (path === '/api/extract' && extractRateLimit) {
+    const { success, limit, reset, remaining } = await extractRateLimit.limit(`extract_${ip}`);
+    
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Upgrade to Pro for unlimited scans.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString(),
+          },
+        }
+      );
     }
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  const pathname = request.nextUrl.pathname;
-  const isProtectedRoute = pathname.startsWith("/dashboard") || pathname.startsWith("/onboarding") || pathname.startsWith("/upgrade");
-  const isLoginRoute = pathname === "/login";
-
-  if (isProtectedRoute && !user) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(loginUrl);
   }
 
-  if (isLoginRoute && user) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Rate limit /api/report
+  if (path === '/api/report' && reportRateLimit) {
+    const { success, limit, reset, remaining } = await reportRateLimit.limit(`report_${ip}`);
+    
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Try again later.' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString(),
+          },
+        }
+      );
+    }
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-  ],
+  matcher: '/api/:path*',
 };
