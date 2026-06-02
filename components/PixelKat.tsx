@@ -5,13 +5,14 @@ import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from
 import { detectRegion } from "@/lib/region";
 import { Heart } from "lucide-react";
 import type { DBPayment } from "@/lib/database.types";
+import { PixelArt } from "./ui/PixelArt";
+import { KAT_FRAMES, KatSkin } from "@/lib/kat-frames";
 
-// Colors for accents
 const C = {
   fur: "#A0A0A0",
   pink: "#D0D0D0",
-  green: "#00FF87", // Keep green for the LED/Accent only
-  gold: "#FFD700", // Keep gold for Elite
+  green: "#00FF87",
+  gold: "#FFD700",
   danger: "#FF3B30",
 };
 
@@ -35,17 +36,17 @@ interface PixelKatProps {
   streak: number;
   hasOverdue: boolean;
   tier: "free" | "pro" | "elite";
-  activePayments?: DBPayment[]; // Passed down to generate contextual tips
+  activePayments?: DBPayment[];
+  skin?: KatSkin;
 }
 
-export default function PixelKat({ streak, hasOverdue, tier, activePayments = [] }: PixelKatProps) {
+export default function PixelKat({ streak, hasOverdue, tier, activePayments = [], skin = "orange" }: PixelKatProps) {
   const level = getLevel(streak);
   const levelData = LEVEL_FRAMES[level];
   const { code } = detectRegion();
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Framer motion tracking
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   
@@ -56,18 +57,35 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
   const rotateX = useTransform(springY, [-0.5, 0.5], [15, -15]);
   const rotateY = useTransform(springX, [-0.5, 0.5], [-15, 15]);
 
-  // Interaction State
   const [isHappy, setIsHappy] = useState(false);
   const [hearts, setHearts] = useState<{ id: number; x: number }[]>([]);
   let heartCounter = useRef(0);
 
-  // Contextual Tips Engine
   const [tipIndex, setTipIndex] = useState(0);
   const [typedText, setTypedText] = useState("");
   const [charIdx, setCharIdx] = useState(0);
 
-  // Generate dynamic tips based on user's active payments and tier
   const tips = useRef<string[]>([]);
+  const [currentFrame, setCurrentFrame] = useState<"idle" | "sleep" | "play" | "idle1" | "idle2" | "sleep1" | "sleep2" | "sit">("idle1");
+  const frameTick = useRef(0);
+
+  // Animation Loop for Dashboard Kat
+  useEffect(() => {
+    const interval = setInterval(() => {
+      frameTick.current += 1;
+      if (hasOverdue) {
+        // Stressed/Sleeping or jittering
+        setCurrentFrame(frameTick.current % 2 === 0 ? "sleep1" : "sleep2");
+      } else if (isHappy || level >= 4) {
+        // Happy / Playful (Sit + Tail Wag)
+        setCurrentFrame(frameTick.current % 2 === 0 ? "sit" : "sit");
+      } else {
+        // Idle Breathing
+        setCurrentFrame(frameTick.current % 2 === 0 ? "idle1" : "idle2");
+      }
+    }, 400);
+    return () => clearInterval(interval);
+  }, [hasOverdue, isHappy, level]);
 
   useEffect(() => {
     const newTips = [];
@@ -82,7 +100,6 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
       }
 
       if (activePayments.length > 0) {
-        // Find the closest due payment
         const sorted = [...activePayments].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
         const nextPayment = sorted[0];
         const daysLeft = Math.ceil((new Date(nextPayment.due_date).getTime() - Date.now()) / 86400000);
@@ -97,7 +114,6 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
     tips.current = newTips;
   }, [hasOverdue, streak, activePayments, tier]);
 
-  // Cycle tips every 6 seconds
   useEffect(() => {
     if (tips.current.length <= 1) return;
     const interval = setInterval(() => {
@@ -108,19 +124,17 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
     return () => clearInterval(interval);
   }, []);
 
-  // Typewriter effect
   useEffect(() => {
     const currentTip = tips.current[tipIndex] || ">_";
     if (charIdx < currentTip.length) {
       const timeout = setTimeout(() => {
         setTypedText(currentTip.slice(0, charIdx + 1));
         setCharIdx(c => c + 1);
-      }, 30); // typing speed
+      }, 30);
       return () => clearTimeout(timeout);
     }
   }, [charIdx, tipIndex]);
 
-  // Cursor tracking
   useEffect(() => {
     if (tier === "free") return; 
 
@@ -142,14 +156,12 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
   }, [mouseX, mouseY, tier]);
 
   const handlePet = () => {
-    if (tier === "free") return; // Petting locked to Pro/Elite
+    if (tier === "free") return;
     setIsHappy(true);
     
-    // Spawn heart
     const newHeart = { id: heartCounter.current++, x: Math.random() * 40 - 20 };
     setHearts(h => [...h, newHeart]);
     
-    // Remove heart after 1s
     setTimeout(() => {
       setHearts(h => h.filter(heart => heart.id !== newHeart.id));
     }, 1000);
@@ -157,74 +169,11 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
     setTimeout(() => setIsHappy(false), 800);
   };
 
-  let moodClass = "sprite-idle";
-  
-  if (hasOverdue) {
-    moodClass = "sprite-stressed";
-  } else if (isHappy || level >= 4) {
-    moodClass = "sprite-happy";
-  } else if (level === 3) {
-    moodClass = "sprite-happy";
-  }
-
-  // Free tier is static
-  if (tier === "free") {
-    moodClass = "sprite-static";
-  }
-
   return (
     <div
       id="dashboard-kat-companion"
-      className="rounded-xl border border-border p-5 bg-background flex items-center gap-6 relative"
+      className="rounded-[24px] border border-white/5 p-6 bg-surface-hover/50 backdrop-blur-xl flex items-center gap-6 relative shadow-[0_8px_32px_-8px_rgba(0,0,0,0.1)] overflow-hidden"
     >
-      <style>{`
-        .pixel-kat-container {
-          width: 64px;
-          height: 64px;
-          overflow: hidden;
-          flex-shrink: 0;
-          background-color: #000;
-          border-radius: 8px;
-          border: 1px solid rgba(255,255,255,0.1);
-          filter: grayscale(100%) contrast(1.2);
-          cursor: pointer;
-        }
-        
-        .pixel-sprite {
-          width: 256px; /* 4 frames * 64px */
-          height: 256px; /* 4 rows * 64px */
-          background-image: url('/kat-sprite.png');
-          background-size: 256px 256px;
-          image-rendering: pixelated;
-        }
-
-        .sprite-static {
-          background-position-y: 0px;
-          background-position-x: 0px;
-        }
-
-        .sprite-idle {
-          animation: play-sprite 0.8s steps(4) infinite;
-          background-position-y: 0px;
-        }
-        
-        .sprite-happy {
-          animation: play-sprite 0.6s steps(4) infinite;
-          background-position-y: -64px;
-        }
-        
-        .sprite-stressed {
-          animation: play-sprite 0.4s steps(4) infinite;
-          background-position-y: -128px;
-        }
-
-        @keyframes play-sprite {
-          from { background-position-x: 0px; }
-          to { background-position-x: -256px; }
-        }
-      `}</style>
-
-      {/* Floating Hearts */}
       <AnimatePresence>
         {hearts.map(heart => (
           <motion.div
@@ -240,11 +189,10 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
         ))}
       </AnimatePresence>
 
-      {/* Pixel sprite canvas */}
       <motion.div 
         ref={containerRef}
         onClick={handlePet}
-        className="pixel-kat-container shadow-[0_0_15px_rgba(255,255,255,0.05)] relative z-0"
+        className="w-16 h-16 shrink-0 bg-background rounded-lg border border-white/10 flex items-center justify-center shadow-[0_0_15px_rgba(255,255,255,0.05)] relative z-0 cursor-pointer overflow-hidden"
         style={{ 
           rotateX: tier === "free" ? 0 : rotateX, 
           rotateY: tier === "free" ? 0 : rotateY,
@@ -253,13 +201,12 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
         whileHover={tier !== "free" ? { scale: 1.05 } : {}}
         whileTap={tier !== "free" ? { scale: 0.95 } : {}}
       >
-        <div className={`pixel-sprite ${moodClass}`} />
+        <PixelArt data={KAT_FRAMES[currentFrame === "play" ? "sit" : currentFrame]} skin={skin} size={40} className="mt-2" />
         
         {/* Status LED */}
         <div className={`absolute bottom-1 right-1 w-1.5 h-1.5 rounded-full ${hasOverdue ? "bg-danger animate-pulse" : "bg-success"}`} style={{ filter: "grayscale(0)" }} />
       </motion.div>
 
-      {/* Info panel */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span
@@ -273,7 +220,6 @@ export default function PixelKat({ streak, hasOverdue, tier, activePayments = []
           </span>
         </div>
 
-        {/* Speech bubble */}
         <div className="bg-surface border border-border rounded-lg px-3 py-2 mt-2 mb-3 relative min-h-[42px] flex items-center">
           <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-y-4 border-y-transparent border-r-4 border-r-white/10" />
           <p

@@ -21,6 +21,7 @@ CREATE TABLE public.users (
   ai_report_at timestamptz,
   alerts_enabled boolean DEFAULT true,
   companion_name text,
+  companion_skin text DEFAULT 'orange' CHECK (companion_skin IN ('orange', 'black', 'white', 'calico', 'grey')),
   ai_tone text DEFAULT 'hype' CHECK (ai_tone IN ('hype', 'roast')),
   wallet_balance decimal DEFAULT 0,
   created_at timestamptz DEFAULT now()

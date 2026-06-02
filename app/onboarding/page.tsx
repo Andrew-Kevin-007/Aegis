@@ -10,11 +10,14 @@ import Button from "@/components/ui/Button";
 import type { Payment } from "@/lib/gemini";
 import { toast, Toaster } from "sonner";
 import { addDemoPayments } from "@/app/actions";
+import { PixelArt } from "@/components/ui/PixelArt";
+import { KAT_FRAMES, KatSkin } from "@/lib/kat-frames";
 
 export default function Onboarding() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [companionName, setCompanionName] = useState("");
+  const [companionSkin, setCompanionSkin] = useState<KatSkin>("orange");
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [extractedPayments, setExtractedPayments] = useState<Payment[]>([]);
@@ -130,14 +133,25 @@ export default function Onboarding() {
                 className="absolute inset-0 flex flex-col p-6"
               >
                 <div className="flex-1 flex flex-col items-center justify-center text-center max-w-sm mx-auto">
-                  <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mb-6">
-                    <ShieldCheck className="w-10 h-10 text-primary" />
-                  </div>
-                  <h2 className="text-2xl font-medium tracking-tight mb-3">Initialize Aegis</h2>
-                  <p className="text-text-secondary text-sm leading-relaxed mb-8">
-                    Aegis is your proactive financial AI. It lives on your screen, protects your credit score, and negotiates late fees. 
-                    <br/><br/>What should we call your companion?
+                  <h2 className="text-2xl font-medium tracking-tight mb-3">Initialize Companion</h2>
+                  <p className="text-text-secondary text-sm leading-relaxed mb-6">
+                    Your companion lives on your screen and protects your credit score. Choose a skin and a name.
                   </p>
+                  
+                  {/* Skin Selector */}
+                  <div className="flex items-center gap-3 mb-6 overflow-x-auto pb-2 w-full justify-center">
+                    {(["orange", "black", "grey", "white", "calico"] as const).map(skin => (
+                      <button
+                        key={skin}
+                        onClick={() => setCompanionSkin(skin)}
+                        className={`relative w-14 h-14 rounded-xl border-2 flex items-center justify-center transition-all ${companionSkin === skin ? "border-primary bg-primary/10 scale-110" : "border-border hover:border-text-muted"}`}
+                      >
+                        <div className="mt-1">
+                          <PixelArt data={KAT_FRAMES[companionSkin === skin ? "sit" : "idle1"]} skin={skin} size={40} />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                   
                   <div className="w-full relative">
                     <input 
@@ -162,7 +176,10 @@ export default function Onboarding() {
                       }
                       const { data: { user } } = await createClient().auth.getUser();
                       if (user) {
-                        await createClient().from("users").update({ companion_name: companionName.trim() }).eq("id", user.id);
+                        await createClient().from("users").update({ 
+                          companion_name: companionName.trim(),
+                          companion_skin: companionSkin 
+                        }).eq("id", user.id);
                       }
                       setStep(1);
                     }}

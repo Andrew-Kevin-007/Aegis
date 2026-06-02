@@ -18,6 +18,7 @@ export interface DBUser {
   alerts_enabled: boolean;
   companion_name: string | null;
   ai_tone: "hype" | "roast";
+  companion_skin: "orange" | "black" | "white" | "calico" | "grey";
   wallet_balance: number;
   created_at: string;
 }

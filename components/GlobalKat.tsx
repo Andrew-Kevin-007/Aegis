@@ -1,28 +1,54 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Cat, MessageSquare, Moon, X } from "lucide-react";
+import { motion, useMotionValue, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import type { DBUser } from "@/lib/database.types";
+import { PixelArt } from "./ui/PixelArt";
+import { KAT_FRAMES, KatSkin, KatFrame } from "@/lib/kat-frames";
 
-interface Position {
+type KatState = "idle" | "walk" | "sleep" | "jump" | "climb" | "sit" | "dragged";
+
+interface Rect {
   x: number;
   y: number;
+  w: number;
+  h: number;
+  isButton: boolean;
 }
 
 export default function GlobalKat() {
-  const [position, setPosition] = useState<Position>({ x: window.innerWidth - 100, y: window.innerHeight - 100 });
   const [message, setMessage] = useState<string | null>(null);
-  const [state, setState] = useState<"idle" | "roaming" | "sleeping" | "alert">("idle");
   const [user, setUser] = useState<DBUser | null>(null);
   const [isClient, setIsClient] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // High-performance motion values
+  const mvX = useMotionValue(-100);
+  const mvY = useMotionValue(-100);
+  
+  // Physics State
+  const pos = useRef({ x: 0, y: 0 });
+  const vel = useRef({ vx: 0, vy: 0 });
+  const state = useRef<KatState>("idle");
+  const facingRight = useRef(true);
+  
+  // Target for roaming
+  const targetX = useRef<number | null>(null);
+  const targetButton = useRef<Rect | null>(null);
+
+  // Animation Frame State (React state for visual updates)
+  const [currentFrame, setCurrentFrame] = useState<KatFrame>("idle1");
+  const [uiFacingRight, setUiFacingRight] = useState(true);
+  const frameTick = useRef(0);
 
   useEffect(() => {
     setIsClient(true);
-    setPosition({ x: window.innerWidth - 150, y: window.innerHeight - 150 });
-    
+    // Initial drop-in
+    pos.current = { x: window.innerWidth / 2, y: 50 };
+    mvX.set(pos.current.x);
+    mvY.set(pos.current.y);
+
     async function init() {
       const supabase = createClient();
       const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -32,75 +58,305 @@ export default function GlobalKat() {
       }
     }
     init();
-  }, []);
+  }, [mvX, mvY]);
 
-  // Roaming Engine
+  // Frame-by-Frame Animation Loop
+  useEffect(() => {
+    if (!isClient) return;
+    const interval = setInterval(() => {
+      frameTick.current += 1;
+      
+      switch(state.current) {
+        case "walk":
+          setCurrentFrame(frameTick.current % 2 === 0 ? "walk1" : "walk2");
+          break;
+        case "climb":
+          setCurrentFrame(frameTick.current % 2 === 0 ? "climb1" : "climb2");
+          break;
+        case "jump":
+          setCurrentFrame("jump");
+          break;
+        case "sleep":
+          setCurrentFrame(frameTick.current % 2 === 0 ? "sleep1" : "sleep2");
+          break;
+        case "sit":
+          setCurrentFrame("sit");
+          break;
+        case "dragged":
+          setCurrentFrame("jump");
+          break;
+        default:
+          setCurrentFrame(frameTick.current % 2 === 0 ? "idle1" : "idle2");
+          break;
+      }
+    }, 250); // Slightly slower for cute breathing
+    return () => clearInterval(interval);
+  }, [isClient]);
+
+  // Main 2D Physics Loop
   useEffect(() => {
     if (!isClient) return;
 
-    const findTarget = () => {
-      // Elements to interact with
-      const targets = [
-        document.getElementById("dashboard-active-tab"),
-        document.getElementById("dashboard-total-debt"),
-        document.querySelector("header"),
-        document.querySelector("button")
-      ];
+    let animationFrameId: number;
+    const K = 48; // Reduced Size
+    const GRAVITY = 0.8;
+    const MAX_FALL_SPEED = 15;
+    const WALK_SPEED = 2;
+    const CLIMB_SPEED = -3;
+
+    const getColliders = (): Rect[] => {
+      const colliders: Rect[] = [];
+      // Ground floor
+      colliders.push({ x: 0, w: window.innerWidth, y: window.innerHeight - 5, h: 100, isButton: false });
       
-      const validTargets = targets.filter(t => t !== null);
-      if (validTargets.length > 0) {
-        const target = validTargets[Math.floor(Math.random() * validTargets.length)];
-        const rect = target!.getBoundingClientRect();
-        
-        // Jump to top of the element
-        return {
-          x: rect.left + (Math.random() * rect.width),
-          y: rect.top - 60 // sit on top
-        };
-      }
-      
-      // Random roaming fallback
-      return {
-        x: Math.max(50, Math.random() * (window.innerWidth - 100)),
-        y: Math.max(50, Math.random() * (window.innerHeight - 100))
-      };
+      // Elements
+      document.querySelectorAll('.card, header, button').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        // Ignore invisible or tiny elements
+        if (rect.width > 20 && rect.height > 20) {
+          colliders.push({ 
+            x: rect.left, 
+            y: rect.top, 
+            w: rect.width, 
+            h: rect.height,
+            isButton: el.tagName.toLowerCase() === 'button' || el.textContent?.toLowerCase().includes('settle') || false
+          });
+        }
+      });
+      return colliders;
     };
 
-    const interval = setInterval(() => {
-      if (Math.random() > 0.4) {
-        const newPos = findTarget();
-        setPosition(newPos);
-        setState(Math.random() > 0.7 ? "sleeping" : "roaming");
+    const updatePhysics = () => {
+      if (state.current === "dragged") {
+        animationFrameId = requestAnimationFrame(updatePhysics);
+        return;
+      }
+
+      const colliders = getColliders();
+
+      // State: CLIMBING
+      if (state.current === "climb") {
+        vel.current.vy = CLIMB_SPEED;
+        vel.current.vx = 0;
+        pos.current.y += vel.current.vy;
+
+        // Check if we reached the top of whatever we are climbing
+        let stillClimbing = false;
+        for (const col of colliders) {
+          // If we are touching the side
+          const isTouchingLeftWall = pos.current.x + K >= col.x && pos.current.x + K < col.x + 20;
+          const isTouchingRightWall = pos.current.x <= col.x + col.w && pos.current.x > col.x + col.w - 20;
+          
+          if ((isTouchingLeftWall || isTouchingRightWall) && pos.current.y + K > col.y) {
+            stillClimbing = true;
+            // Did we crest the top?
+            if (pos.current.y + K/2 < col.y) {
+              // Pull up!
+              pos.current.y = col.y - K;
+              pos.current.x += facingRight.current ? 20 : -20; // hop onto it
+              vel.current.vy = 0;
+              state.current = targetButton.current ? "sleep" : "walk";
+              stillClimbing = false;
+              break;
+            }
+          }
+        }
+
+        if (!stillClimbing && state.current === "climb") {
+          // Fell off or reached top
+          state.current = "jump";
+        }
+      } 
+      // State: NORMAL (Walk, Jump, Idle)
+      else {
+        // Apply Gravity
+        vel.current.vy += GRAVITY;
+        if (vel.current.vy > MAX_FALL_SPEED) vel.current.vy = MAX_FALL_SPEED;
+
+        // Apply Walking Velocity
+        if (state.current === "walk" && targetX.current !== null) {
+          const dx = targetX.current - pos.current.x;
+          if (Math.abs(dx) < 5) {
+            vel.current.vx = 0;
+            state.current = "idle";
+            targetX.current = null;
+          } else {
+            vel.current.vx = dx > 0 ? WALK_SPEED : -WALK_SPEED;
+            const newFacingRight = dx > 0;
+            if (facingRight.current !== newFacingRight) {
+              facingRight.current = newFacingRight;
+              setUiFacingRight(newFacingRight);
+            }
+          }
+        } else if (state.current !== "walk" && state.current !== "jump") {
+          vel.current.vx *= 0.8; // friction
+        }
+
+        // Pre-calculate next X
+        const nextX = pos.current.x + vel.current.vx;
+        let hitWall = false;
+
+        // Check Wall Collisions (X-axis)
+        for (const col of colliders) {
+          // Are we vertically overlapping this collider?
+          if (pos.current.y + K > col.y + 10 && pos.current.y < col.y + col.h - 10) {
+            // Moving Right, hitting Left wall of collider
+            if (vel.current.vx > 0 && pos.current.x + K <= col.x && nextX + K >= col.x) {
+              pos.current.x = col.x - K;
+              vel.current.vx = 0;
+              hitWall = true;
+              break;
+            }
+            // Moving Left, hitting Right wall of collider
+            if (vel.current.vx < 0 && pos.current.x >= col.x + col.w && nextX <= col.x + col.w) {
+              pos.current.x = col.x + col.w;
+              vel.current.vx = 0;
+              hitWall = true;
+              break;
+            }
+          }
+        }
+
+        if (hitWall) {
+          // Transition to Climb
+          state.current = "climb";
+        } else {
+          pos.current.x = nextX;
+        }
+
+        // Apply Y
+        pos.current.y += vel.current.vy;
+
+        // Floor Collision Y
+        let onGround = false;
+
+        if (vel.current.vy > 0 && state.current !== "climb") { // falling
+          for (const col of colliders) {
+            // Horizontally within the collider?
+            if (pos.current.x + K - 15 > col.x && pos.current.x + 15 < col.x + col.w) {
+              // Crossed the top?
+              if (pos.current.y + K >= col.y && pos.current.y + K - vel.current.vy <= col.y + 15) {
+                pos.current.y = col.y - K;
+                vel.current.vy = 0;
+                onGround = true;
+                
+                if (state.current === "jump") {
+                  state.current = "idle";
+                }
+                
+                // If this is our target button, sit!
+                if (targetButton.current && col.isButton) {
+                  state.current = "sleep";
+                  targetButton.current = null;
+                }
+                
+                break;
+              }
+            }
+          }
+        } else if (vel.current.vy === 0 && state.current !== "climb") {
+          // Check if walking off ledge
+          for (const col of colliders) {
+            if (pos.current.y + K === col.y && pos.current.x + K - 15 > col.x && pos.current.x + 15 < col.x + col.w) {
+              onGround = true;
+              break;
+            }
+          }
+        }
+
+        // Check if walking off ledge
+        if (!onGround && state.current !== "jump" && state.current !== "climb") {
+          state.current = "jump"; // falling
+        }
+      }
+
+      // Absolute Bounds (safety)
+      if (pos.current.x < 0) {
+        pos.current.x = 0;
+        if (state.current === "walk") state.current = "idle";
+      } else if (pos.current.x > window.innerWidth - K) {
+        pos.current.x = window.innerWidth - K;
+        if (state.current === "walk") state.current = "idle";
+      }
+
+      if (pos.current.y > window.innerHeight - K) {
+        pos.current.y = window.innerHeight - K;
+        vel.current.vy = 0;
+        if (state.current === "jump") state.current = "idle";
+      }
+
+      mvX.set(pos.current.x);
+      mvY.set(pos.current.y);
+
+      animationFrameId = requestAnimationFrame(updatePhysics);
+    };
+
+    animationFrameId = requestAnimationFrame(updatePhysics);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isClient, mvX, mvY]);
+
+  // AI Brain Loop
+  useEffect(() => {
+    if (!isClient) return;
+
+    const actionLoop = setInterval(() => {
+      if (state.current === "dragged" || state.current === "climb") return;
+
+      const rand = Math.random();
+      
+      if (rand > 0.6) {
+        const actionRand = Math.random();
         
-        // Sometimes talk
-        if (Math.random() > 0.6 && user) {
+        // 20% chance to target a Settle button to sleep on
+        if (actionRand < 0.2) {
+          const buttons = Array.from(document.querySelectorAll('button')).filter(b => b.textContent?.toLowerCase().includes('settle'));
+          if (buttons.length > 0) {
+            const btn = buttons[0];
+            const rect = btn.getBoundingClientRect();
+            targetButton.current = { x: rect.left, y: rect.top, w: rect.width, h: rect.height, isButton: true };
+            targetX.current = rect.left + rect.width / 2 - 32;
+            state.current = "walk";
+            return;
+          }
+        }
+
+        if (actionRand < 0.4) {
+          // Walk
+          targetX.current = Math.max(0, Math.min(window.innerWidth - 64, pos.current.x + (Math.random() - 0.5) * 600));
+          state.current = "walk";
+        } else if (actionRand < 0.6) {
+          // Jump randomly
+          if (state.current !== "jump") {
+            vel.current.vy = -18;
+            vel.current.vx = (Math.random() - 0.5) * 8;
+            state.current = "jump";
+          }
+        } else if (actionRand < 0.8) {
+          state.current = "sit";
+          targetX.current = null;
+        } else {
+          state.current = "idle";
+          targetX.current = null;
+        }
+        
+        // Speak
+        if (Math.random() > 0.8 && user) {
           const tone = user.ai_tone || "hype";
           const name = user.companion_name || "Aegis";
           
           if (tone === "roast") {
-            const roasts = [
-              "Are you really buying more coffee?",
-              "I see that Klarna bill. Pay it.",
-              "I'm judging your spending habits.",
-              "You know compound interest works both ways, right?"
-            ];
+            const roasts = ["Judging you...", "Another coffee?", "Pay it off.", "Hmm."];
             setMessage(`[${name}]: ${roasts[Math.floor(Math.random() * roasts.length)]}`);
           } else {
-            const hypes = [
-              "You're doing great!",
-              "Keep up the debt-free streak!",
-              "I believe in your financial freedom.",
-              "Let's crush those liabilities!"
-            ];
+            const hypes = ["You got this!", "Purrrrr...", "Nice streak!", "Let's go!"];
             setMessage(`[${name}]: ${hypes[Math.floor(Math.random() * hypes.length)]}`);
           }
-          
-          setTimeout(() => setMessage(null), 5000);
+          setTimeout(() => setMessage(null), 4000);
         }
       }
-    }, 8000);
+    }, 3000);
 
-    return () => clearInterval(interval);
+    return () => clearInterval(actionLoop);
   }, [isClient, user]);
 
   if (!isClient) return null;
@@ -108,43 +364,60 @@ export default function GlobalKat() {
   return (
     <motion.div
       ref={containerRef}
-      className="fixed z-[9999] pointer-events-none"
-      animate={{ x: position.x, y: position.y }}
-      transition={{ type: "spring", damping: 15, stiffness: 50, mass: 1 }}
+      className="fixed z-[9999] pointer-events-auto cursor-grab active:cursor-grabbing"
+      style={{ x: mvX, y: mvY }}
+      drag
+      dragConstraints={{ left: 0, right: window.innerWidth - 48, top: 0, bottom: window.innerHeight - 48 }}
+      dragElastic={0.1}
+      dragMomentum={false}
+      onDragStart={() => {
+        state.current = "dragged";
+        targetX.current = null;
+        vel.current = { vx: 0, vy: 0 };
+      }}
+      onDragEnd={(_, info) => {
+        pos.current.x = Math.min(window.innerWidth - 48, Math.max(0, pos.current.x + info.offset.x));
+        pos.current.y = Math.min(window.innerHeight - 48, Math.max(0, pos.current.y + info.offset.y));
+        mvX.set(pos.current.x);
+        mvY.set(pos.current.y);
+        state.current = "jump"; 
+      }}
+      onClick={() => {
+        if (state.current !== "dragged" && state.current !== "climb") {
+          state.current = "idle";
+          vel.current.vy = -10; // little hop
+          setMessage("Purrrrrr! <3");
+          setTimeout(() => setMessage(null), 2000);
+        }
+      }}
     >
-      <div className="relative flex flex-col items-center pointer-events-auto cursor-pointer" onClick={() => {
-        setMessage(user?.ai_tone === "roast" ? "Don't poke me." : "Purrrr...");
-        setState("alert");
-        setTimeout(() => setMessage(null), 3000);
-      }}>
-        
+      <div className="relative flex flex-col items-center w-12 h-12">
         <AnimatePresence>
           {message && (
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="absolute bottom-full mb-4 whitespace-nowrap bg-surface border border-border shadow-lg rounded-2xl px-4 py-2"
+              className="absolute bottom-[60px] whitespace-nowrap bg-background border-[2px] border-border shadow-[4px_4px_0_0_rgba(0,0,0,0.1)] rounded-sm px-3 py-1.5"
+              style={{ fontFamily: "'Courier New', Courier, monospace" }}
             >
-              <p className="text-sm font-medium text-text-primary">{message}</p>
-              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-surface border-b border-r border-border rotate-45" />
+              <p className="text-xs font-bold text-text-primary">{message}</p>
+              <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-background border-b-[2px] border-r-[2px] border-border rotate-45" />
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="w-12 h-12 bg-surface border border-border shadow-sm rounded-full flex items-center justify-center overflow-hidden hover:scale-110 transition-transform">
-          {state === "sleeping" ? (
-            <Moon className="w-6 h-6 text-text-muted" />
-          ) : state === "alert" ? (
-            <MessageSquare className="w-6 h-6 text-warning" />
-          ) : (
-            <Cat className="w-6 h-6 text-primary" />
-          )}
-        </div>
+        <motion.div 
+          animate={{ scaleX: uiFacingRight ? 1 : -1 }}
+          transition={{ duration: 0.2 }}
+          className="relative drop-shadow-[0_10px_10px_rgba(0,0,0,0.15)]"
+        >
+          <PixelArt data={KAT_FRAMES[currentFrame]} skin={(user?.companion_skin as KatSkin) || "orange"} size={48} />
+        </motion.div>
         
         {user?.companion_name && (
-          <div className="absolute top-full mt-2 bg-primary/10 px-2 py-0.5 rounded-full backdrop-blur-sm">
-            <p className="text-[10px] font-mono font-bold text-primary">{user.companion_name}</p>
+          <div className="absolute top-[48px] mt-1 bg-surface border border-border px-1.5 py-0.5 rounded-[4px] pointer-events-none">
+            <p className="text-[9px] font-mono font-bold text-text-muted">{user.companion_name}</p>
           </div>
         )}
       </div>
